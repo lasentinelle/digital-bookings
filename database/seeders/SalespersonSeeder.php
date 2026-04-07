@@ -12,6 +12,38 @@ class SalespersonSeeder extends Seeder
      */
     public function run(): void
     {
-        Salesperson::factory()->count(10)->create();
+        $salespeople = [
+            [
+                'first_name' => 'Patricia',
+                'last_name' => 'Caprice',
+                'email' => 'patricia.caprice@lasentinelle.mu',
+                'phone' => '+230 5000 0001',
+            ],
+            [
+                'first_name' => 'Jenna',
+                'last_name' => 'Moutou',
+                'email' => 'jenna.moutou@lasentinelle.mu',
+                'phone' => '+230 5000 0002',
+            ],
+            [
+                'first_name' => 'Gino',
+                'last_name' => 'Sophine',
+                'email' => 'gino.sophie@lasentinelle.mu',
+                'phone' => '+230 5000 0003',
+            ],
+            [
+                'first_name' => 'Rachel',
+                'last_name' => 'Dauhoo',
+                'email' => 'rachel.dauhoo@lasentinelle.mu',
+                'phone' => '+230 5000 0004',
+            ],
+        ];
+
+        foreach ($salespeople as $salesperson) {
+            Salesperson::firstOrCreate(
+                ['email' => $salesperson['email']],
+                $salesperson,
+            );
+        }
     }
 }

@@ -2,8 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use App\UserRole;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -16,34 +14,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::firstOrCreate(
-            ['email' => 'shirley.bourbon@lasentinelle.mu'],
-            [
-                'firstname' => 'Shirley',
-                'lastname' => 'Bourbon',
-                'password' => 'password',
-                'role' => UserRole::SuperAdmin,
-            ],
-        );
-
-        User::firstOrCreate(
-            ['email' => 'maita.lallman@lasentinelle.mu'],
-            [
-                'firstname' => 'Maita',
-                'lastname' => 'Lallman',
-                'password' => 'password',
-                'role' => UserRole::Admin,
-            ],
-        );
-
-        User::firstOrCreate(
-            ['email' => 'patricia.caprice@lasentinelle.mu'],
-            [
-                'firstname' => 'Patricia',
-                'lastname' => 'Caprice',
-                'password' => 'password',
-                'role' => UserRole::Salesperson,
-            ],
-        );
+        $this->call([
+            UserSeeder::class,
+            SalespersonSeeder::class,
+            PlatformSeeder::class,
+            PlacementSeeder::class,
+            ClientSeeder::class,
+            AgencySeeder::class,
+            ReservationSeeder::class,
+            BudgetSeeder::class,
+        ]);
     }
 }

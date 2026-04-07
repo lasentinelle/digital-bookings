@@ -26,4 +26,12 @@ class Platform extends Model
     {
         return $this->hasMany(Placement::class);
     }
+
+    /**
+     * @return HasMany<Reservation, $this>
+     */
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(Reservation::class);
+    }
 }
