@@ -12,6 +12,16 @@ class PlatformSeeder extends Seeder
      */
     public function run(): void
     {
-        Platform::factory()->count(10)->create();
+        $platforms = [
+            ['name' => 'lexpress.mu'],
+            ['name' => '5plus.mu'],
+        ];
+
+        foreach ($platforms as $platform) {
+            Platform::firstOrCreate(
+                ['name' => $platform['name']],
+                $platform,
+            );
+        }
     }
 }

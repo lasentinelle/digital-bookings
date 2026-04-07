@@ -1,0 +1,204 @@
+<?php
+
+use App\Models\Budget;
+use App\Models\Platform;
+use App\Models\Reservation;
+use App\Models\Salesperson;
+use App\Models\SalespersonTarget;
+use App\Models\User;
+use App\UserRole;
+use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+it('shows the budget index for super admins', function () {
+    $superAdmin = User::factory()->superAdmin()->create();
+    $currentFinancialYearStart = Budget::financialYearStartYear();
+    Budget::factory()->create([
+        'year' => $currentFinancialYearStart,
+        'month' => 7,
+        'amount' => 1500000,
+    ]);
+
+    $this->actingAs($superAdmin)
+        ->get(route('budgets.index'))
+        ->assertOk()
+        ->assertSee('Budget')
+        ->assertSee('July '.$currentFinancialYearStart);
+});
+
+it('shows a different financial year via the fy query parameter', function () {
+    $superAdmin = User::factory()->superAdmin()->create();
+    Budget::factory()->create(['year' => 2030, 'month' => 7, 'amount' => 2000000]);
+
+    $this->actingAs($superAdmin)
+        ->get(route('budgets.index', ['fy' => 2030]))
+        ->assertOk()
+        ->assertSee('FY 2030/2031')
+        ->assertSee('July 2030')
+        ->assertSee('June 2031');
+});
+
+it('marks the current financial year as current and others as not current', function () {
+    $superAdmin = User::factory()->superAdmin()->create();
+    $currentFinancialYearStart = Budget::financialYearStartYear();
+
+    $this->actingAs($superAdmin)
+        ->get(route('budgets.index'))
+        ->assertOk()
+        ->assertSee('Current');
+
+    $this->actingAs($superAdmin)
+        ->get(route('budgets.index', ['fy' => $currentFinancialYearStart + 1]))
+        ->assertOk()
+        ->assertDontSee('Current')
+        ->assertSee('Jump to current FY');
+});
+
+it('rejects an out-of-range financial year', function () {
+    $superAdmin = User::factory()->superAdmin()->create();
+
+    $this->actingAs($superAdmin)
+        ->get(route('budgets.index', ['fy' => 1500]))
+        ->assertNotFound();
+});
+
+it('redirects back to the financial year of the edited month after update', function () {
+    $superAdmin = User::factory()->superAdmin()->create();
+
+    $this->actingAs($superAdmin)
+        ->put(route('budgets.update', ['year' => 2030, 'month' => 3]), [
+            'amount' => 1900000,
+        ])
+        ->assertRedirect(route('budgets.index', ['fy' => 2029]));
+
+    $this->actingAs($superAdmin)
+        ->put(route('budgets.update', ['year' => 2030, 'month' => 8]), [
+            'amount' => 1900000,
+        ])
+        ->assertRedirect(route('budgets.index', ['fy' => 2030]));
+});
+
+it('forbids non-super-admins from viewing budgets', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->get(route('budgets.index'))
+        ->assertForbidden();
+});
+
+it('forbids salespersons from viewing budgets', function () {
+    $salesperson = User::factory()->salesperson()->create();
+
+    $this->actingAs($salesperson)
+        ->get(route('budgets.index'))
+        ->assertForbidden();
+});
+
+it('allows super admin to update a monthly budget and salesperson targets', function () {
+    $superAdmin = User::factory()->superAdmin()->create();
+    $salesperson = Salesperson::factory()->create();
+
+    $this->actingAs($superAdmin)
+        ->put(route('budgets.update', ['year' => 2025, 'month' => 7]), [
+            'amount' => 1750000,
+            'targets' => [
+                $salesperson->id => 250000,
+            ],
+        ])
+        ->assertRedirect(route('budgets.index', ['fy' => 2025]));
+
+    expect(Budget::where('year', 2025)->where('month', 7)->first())
+        ->amount->toEqual('1750000.00');
+
+    expect(SalespersonTarget::where('salesperson_id', $salesperson->id)->first())
+        ->amount->toEqual('250000.00');
+});
+
+it('removes a salesperson target when set to empty', function () {
+    $superAdmin = User::factory()->superAdmin()->create();
+    $salesperson = Salesperson::factory()->create();
+    $budget = Budget::factory()->create(['year' => 2025, 'month' => 8, 'amount' => 1500000]);
+    SalespersonTarget::factory()->create([
+        'budget_id' => $budget->id,
+        'salesperson_id' => $salesperson->id,
+        'amount' => 100000,
+    ]);
+
+    $this->actingAs($superAdmin)
+        ->put(route('budgets.update', ['year' => 2025, 'month' => 8]), [
+            'amount' => 1500000,
+            'targets' => [
+                $salesperson->id => '',
+            ],
+        ])
+        ->assertRedirect();
+
+    expect(SalespersonTarget::where('salesperson_id', $salesperson->id)->count())->toBe(0);
+});
+
+it('forbids non-super-admins from updating a budget', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->put(route('budgets.update', ['year' => 2025, 'month' => 7]), [
+            'amount' => 1750000,
+        ])
+        ->assertForbidden();
+});
+
+it('shows dashboard KPI cards on the home page', function () {
+    $user = User::factory()->create(['role' => UserRole::Admin]);
+    Budget::factory()->create(['year' => 2025, 'month' => 7, 'amount' => 1500000]);
+
+    $this->actingAs($user)
+        ->get(route('home'))
+        ->assertOk()
+        ->assertSee('Yearly Budget')
+        ->assertSee('Cumulated Sales')
+        ->assertSee('Yearly Target');
+});
+
+it('shows the second row of dashboard cards on the home page', function () {
+    $user = User::factory()->create(['role' => UserRole::Admin]);
+    $fyStart = Budget::financialYearStartYear();
+    $insideCurrentFy = Carbon::create($fyStart, Budget::FINANCIAL_YEAR_START_MONTH, 15);
+    $insidePreviousFy = $insideCurrentFy->copy()->subYear();
+
+    $salesperson = Salesperson::factory()->create([
+        'first_name' => 'Alice',
+        'last_name' => 'Anderson',
+    ]);
+    $platform = Platform::factory()->create(['name' => 'lexpress.mu']);
+
+    $current = Reservation::factory()->create([
+        'salesperson_id' => $salesperson->id,
+        'platform_id' => $platform->id,
+        'gross_amount' => 12345,
+    ]);
+    $current->created_at = $insideCurrentFy;
+    $current->updated_at = $insideCurrentFy;
+    $current->saveQuietly();
+
+    $previous = Reservation::factory()->create([
+        'salesperson_id' => $salesperson->id,
+        'platform_id' => $platform->id,
+        'gross_amount' => 6789,
+    ]);
+    $previous->created_at = $insidePreviousFy;
+    $previous->updated_at = $insidePreviousFy;
+    $previous->saveQuietly();
+
+    $this->actingAs($user)
+        ->get(route('home'))
+        ->assertOk()
+        ->assertSee('Salesperson Performance')
+        ->assertSee('Alice Anderson')
+        ->assertSee('1 bookings')
+        ->assertSee('Monthly Sales Comparison')
+        ->assertSee('Platform Sales')
+        ->assertSee('lexpress.mu')
+        ->assertSee('MUR '.number_format(12345))
+        ->assertSee('MUR '.number_format(6789));
+});

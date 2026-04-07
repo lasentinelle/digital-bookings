@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\AgencyController;
+use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PlacementController;
 use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\ReservationController;
@@ -12,12 +14,12 @@ use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
+Route::get('/', function (HomeController $controller) {
     if (! Auth::check()) {
         return redirect()->route('login');
     }
 
-    return view('home');
+    return $controller->index();
 })->name('home');
 
 // Authentication Routes
@@ -32,9 +34,17 @@ Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 // Routes requiring authentication
 Route::middleware('auth')->group(function () {
 
-    // Super Admin only: User management
+    // Super Admin only: User management & Budgets
     Route::middleware('role:super_admin')->group(function () {
         Route::resource('users', UserManagementController::class)->except(['show']);
+
+        Route::get('budgets', [BudgetController::class, 'index'])->name('budgets.index');
+        Route::get('budgets/{year}/{month}/edit', [BudgetController::class, 'edit'])
+            ->whereNumber(['year', 'month'])
+            ->name('budgets.edit');
+        Route::put('budgets/{year}/{month}', [BudgetController::class, 'update'])
+            ->whereNumber(['year', 'month'])
+            ->name('budgets.update');
     });
 
     // Admin & Super Admin: manage clients, agencies, salespeople, platforms, placements
