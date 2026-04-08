@@ -254,7 +254,7 @@ it('shows the second row of dashboard cards on the home page', function () {
         ->assertOk()
         ->assertSee('Salesperson Performance')
         ->assertSee('Alice Anderson')
-        ->assertSee('1 bookings')
+        ->assertSee('1 reservations')
         ->assertSee('Monthly Sales Comparison')
         ->assertSee('Placement Earnings')
         ->assertSee('lexpress.mu')

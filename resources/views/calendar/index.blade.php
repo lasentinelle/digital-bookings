@@ -53,10 +53,10 @@
             </a>
           </div>
 
-          {{-- Add booking button --}}
+          {{-- Add reservation button --}}
           <a href="{{ route('reservations.create') }}"
             class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-200">
-            Add booking
+            Add reservation
           </a>
         </div>
       </div>
@@ -87,17 +87,17 @@
                     </span>
                   </div>
 
-                  {{-- Bookings --}}
+                  {{-- Reservations --}}
                   <div class="mt-1 space-y-1">
-                    @foreach(array_slice($day['bookings'], 0, 3) as $booking)
-                      <a href="{{ route('reservations.show', $booking) }}"
+                    @foreach(array_slice($day['reservations'], 0, 3) as $reservation)
+                      <a href="{{ route('reservations.show', $reservation) }}"
                         class="group block truncate rounded px-1.5 py-0.5 text-xs font-medium {{ $day['isCurrentMonth'] ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-gray-100 text-gray-500' }}">
-                        <span class="truncate">{{ $booking->product }}</span>
+                        <span class="truncate">{{ $reservation->product }}</span>
                       </a>
                     @endforeach
-                    @if(count($day['bookings']) > 3)
+                    @if(count($day['reservations']) > 3)
                       <span class="block px-1.5 text-xs text-gray-500">
-                        +{{ count($day['bookings']) - 3 }} more
+                        +{{ count($day['reservations']) - 3 }} more
                       </span>
                     @endif
                   </div>

@@ -9,12 +9,12 @@
             <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 0 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
           </svg>
         </a>
-        <h1 class="text-2xl font-semibold text-gray-900">Add Booking</h1>
+        <h1 class="text-2xl font-semibold text-gray-900">Add Reservation</h1>
       </div>
       <div class="mt-6 h-px w-full bg-gray-100"></div>
 
       <form action="{{ route('reservations.store') }}" method="POST" enctype="multipart/form-data" class="mt-8 max-w-2xl space-y-8"
-        x-data="bookingForm()" x-init="init()" @dates-changed="datesCount = $event.detail.count; recalculateGrossAmount()">
+        x-data="reservationForm()" x-init="init()" @dates-changed="datesCount = $event.detail.count; recalculateGrossAmount()">
         @csrf
 
         {{-- Client & Agency --}}
@@ -158,7 +158,7 @@
 
         {{-- Dates --}}
         <div class="space-y-6">
-          <h2 class="text-lg font-medium text-gray-900">Booking Dates</h2>
+          <h2 class="text-lg font-medium text-gray-900">Reservation Dates</h2>
 
           <div x-data="datePicker()" x-init="init()">
             <label for="dates_display" class="block text-sm font-medium text-gray-700">Dates Booked <span class="text-red-500">*</span></label>
@@ -330,7 +330,7 @@
 
         <div class="flex items-center gap-4">
           <button type="submit" class="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-200">
-            Save Booking
+            Save Reservation
           </button>
           <a href="{{ route('reservations.index') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
             Cancel
@@ -343,7 +343,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>
-    function bookingForm() {
+    function reservationForm() {
       return {
         allPlacements: @json($placementsJson),
         allClients: @json($clientsJson),

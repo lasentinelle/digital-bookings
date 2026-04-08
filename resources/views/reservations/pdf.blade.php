@@ -479,9 +479,9 @@
 
     <hr class="divider-light">
 
-    {{-- Booking Dates --}}
+    {{-- Reservation Dates --}}
     <div style="margin-bottom: 15px;">
-      <div class="section-label">Booking Dates</div>
+      <div class="section-label">Reservation Dates</div>
       <div class="dates-container">
         @foreach($reservation->formattedDateRanges() as $range)
           <span class="date-badge">{{ $range }}</span>
@@ -546,7 +546,7 @@
     <div class="approval-section" style="position: relative;">
       <div class="approval-title">Read &amp; approved (Include company's seal)</div>
       <div class="approval-text">I acknowledge having read, understood and accept the conditions regarding the sales.</div>
-      <div class="approval-instruction">Full name &amp; designation of person authorising this booking :</div>
+      <div class="approval-instruction">Full name &amp; designation of person authorising this reservation :</div>
 
       <div style="display: table; width: 100%;">
         <div style="display: table-cell; width: 62%; vertical-align: top;">
@@ -614,7 +614,7 @@
 
     {{-- Disclaimer --}}
     <div class="disclaimer">
-      Bookings are accepted subject to availability and to the terms and conditions of La Sentinelle Ltd.
+      Reservations are accepted subject to availability and to the terms and conditions of La Sentinelle Ltd.
     </div>
   </div>
 

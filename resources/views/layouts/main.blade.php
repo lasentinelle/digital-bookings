@@ -78,13 +78,13 @@
                   </a>
                 </li>
 
-                {{-- Bookings --}}
+                {{-- Reservations --}}
                 <li>
                   <a href="{{ route('reservations.index') }}" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm {{ request()->routeIs('reservations.*') ? 'font-semibold text-gray-900 bg-white shadow-sm ring-1 ring-gray-200' : 'text-gray-700 hover:bg-white/70' }}">
                     <svg class="h-5 w-5 {{ request()->routeIs('reservations.*') ? 'text-gray-900' : 'text-gray-400' }}" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path d="M6 3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.414A2 2 0 0 0 15.414 6L13 3.586A2 2 0 0 0 11.586 3H6Z" />
                     </svg>
-                    Bookings
+                    Reservations
                   </a>
                 </li>
 
@@ -184,11 +184,11 @@
               </ul>
             </nav>
 
-            <!-- Today's Bookings -->
+            <!-- Today's Reservations -->
             <div class="px-4 pt-4">
-              <h3 class="text-xs font-semibold text-gray-500">Today's Bookings</h3>
+              <h3 class="text-xs font-semibold text-gray-500">Today's Reservations</h3>
               @php
-                $todaysBookings = \App\Models\Reservation::with('client')
+                $todaysReservations = \App\Models\Reservation::with('client')
                   ->get()
                   ->filter(function ($reservation) {
                     return in_array(now()->format('Y-m-d'), $reservation->dates_booked);
@@ -196,14 +196,14 @@
                   ->take(5);
               @endphp
               <ul class="mt-3 space-y-3 text-sm">
-                @forelse($todaysBookings as $index => $booking)
+                @forelse($todaysReservations as $index => $reservation)
                   <li class="{{ $index === 0 ? 'font-semibold text-gray-900' : 'text-gray-800' }}">
-                    <a href="{{ route('reservations.show', $booking) }}" class="hover:underline">
-                      {{ Str::limit($booking->product, 20) }} • {{ Str::limit($booking->client->company_name, 15) }}
+                    <a href="{{ route('reservations.show', $reservation) }}" class="hover:underline">
+                      {{ Str::limit($reservation->product, 20) }} • {{ Str::limit($reservation->client->company_name, 15) }}
                     </a>
                   </li>
                 @empty
-                  <li class="text-gray-500">No bookings today</li>
+                  <li class="text-gray-500">No reservations today</li>
                 @endforelse
               </ul>
             </div>

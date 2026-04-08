@@ -18,7 +18,7 @@ class AgencyController extends Controller
      */
     public function index(): View
     {
-        $agencies = Agency::query()->latest()->get();
+        $agencies = Agency::query()->latest()->paginate(20);
 
         return view('agencies.index', compact('agencies'));
     }

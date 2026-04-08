@@ -148,14 +148,14 @@ class HomeController extends Controller
     }
 
     /**
-     * Bookings and sales totals per salesperson on a platform within the current financial year.
+     * Reservations and sales totals per salesperson on a platform within the current financial year.
      *
      * @return Collection<int, Salesperson>
      */
     private function salespersonStats(Platform $platform, Carbon $fyStart, Carbon $fyEnd): Collection
     {
         return Salesperson::query()
-            ->withCount(['reservations as bookings_count' => function ($query) use ($platform, $fyStart, $fyEnd) {
+            ->withCount(['reservations as reservations_count' => function ($query) use ($platform, $fyStart, $fyEnd) {
                 $query->where('platform_id', $platform->id)
                     ->whereBetween('created_at', [$fyStart, $fyEnd]);
             }])

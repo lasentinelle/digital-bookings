@@ -28,7 +28,7 @@ class ReservationController extends Controller
         $reservations = Reservation::query()
             ->with(['client', 'agency', 'platform', 'placement', 'salesperson'])
             ->latest()
-            ->get();
+            ->paginate(20);
 
         return view('reservations.index', compact('reservations'));
     }
@@ -81,7 +81,7 @@ class ReservationController extends Controller
 
         Reservation::create($data);
 
-        return redirect()->route('reservations.index')->with('success', 'Booking created successfully.');
+        return redirect()->route('reservations.index')->with('success', 'Reservation created successfully.');
     }
 
     /**
@@ -142,7 +142,7 @@ class ReservationController extends Controller
 
         $reservation->update($data);
 
-        return redirect()->route('reservations.index')->with('success', 'Booking updated successfully.');
+        return redirect()->route('reservations.index')->with('success', 'Reservation updated successfully.');
     }
 
     /**
@@ -227,7 +227,7 @@ class ReservationController extends Controller
     {
         $reservation->delete();
 
-        return redirect()->route('reservations.index')->with('success', 'Booking deleted successfully.');
+        return redirect()->route('reservations.index')->with('success', 'Reservation deleted successfully.');
     }
 
     private function handleDocumentUploads(ReservationRequest $request, array $data, ?Reservation $reservation = null): array

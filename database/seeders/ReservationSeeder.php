@@ -80,7 +80,7 @@ class ReservationSeeder extends Seeder
 
             while ($current <= $endDate) {
                 $monthsFromStart = (int) $startDate->diffInMonths($current);
-                $count = $this->monthlyBookingCount($current->month, $monthsFromStart);
+                $count = $this->monthlyReservationCount($current->month, $monthsFromStart);
 
                 for ($i = 0; $i < $count; $i++) {
                     $counter++;
@@ -111,9 +111,9 @@ class ReservationSeeder extends Seeder
     }
 
     /**
-     * Compute a monthly booking count with growth and seasonal variation.
+     * Compute a monthly reservation count with growth and seasonal variation.
      */
-    private function monthlyBookingCount(int $month, int $monthsFromStart): int
+    private function monthlyReservationCount(int $month, int $monthsFromStart): int
     {
         $baseCount = 10 + (int) floor($monthsFromStart / 3);
 

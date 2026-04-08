@@ -14,6 +14,12 @@
       <div class="mt-6 h-px w-full bg-gray-100"></div>
 
       <div class="mt-8 max-w-2xl space-y-8">
+        {{-- Reference --}}
+        <div>
+          <p class="text-sm font-medium text-gray-700">Reference</p>
+          <p class="mt-1 font-mono text-sm text-gray-900">{{ $reservation->reference }}</p>
+        </div>
+
         {{-- Client & Agency --}}
         <div class="space-y-6">
           <h2 class="text-lg font-medium text-gray-900">Client & Agency</h2>
@@ -75,7 +81,7 @@
 
         {{-- Dates --}}
         <div class="space-y-6">
-          <h2 class="text-lg font-medium text-gray-900">Booking Dates</h2>
+          <h2 class="text-lg font-medium text-gray-900">Reservation Dates</h2>
 
           <div>
             <p class="text-sm font-medium text-gray-700">Dates Booked</p>
@@ -199,10 +205,10 @@
 
         <div class="flex items-center gap-4">
           <a href="{{ route('reservations.edit', $reservation) }}" class="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-200">
-            Edit Booking
+            Edit Reservation
           </a>
           <a href="{{ route('reservations.index') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">
-            Back to Bookings
+            Back to Reservations
           </a>
         </div>
       </div>
