@@ -9,6 +9,7 @@ use App\Http\Controllers\PlacementController;
 use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\SalespersonController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Auth;
@@ -63,6 +64,8 @@ Route::middleware('auth')->group(function () {
     Route::post('reservations/{reservation}/upload-document', [ReservationController::class, 'uploadDocument'])->name('reservations.upload-document');
 
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
+
+    Route::get('/search', [SearchController::class, 'index'])->name('search.index');
 
     Route::get('/profile', [UserController::class, 'profile'])->name('profile.show');
     Route::put('/profile', [UserController::class, 'updateProfile'])->name('profile.update');

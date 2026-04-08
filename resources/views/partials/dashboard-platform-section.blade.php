@@ -65,7 +65,7 @@
 
 {{-- Second row: salesperson, monthly comparison, placement earnings --}}
 <div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-4">
-  {{-- Salesperson bookings & sales --}}
+  {{-- Salesperson reservations & sales --}}
   <div class="rounded-2xl bg-white p-5 ring-1 ring-gray-200 shadow-sm lg:col-span-1">
     <p class="text-xs font-medium uppercase tracking-wider text-gray-500">Salesperson Performance</p>
     <p class="mt-1 text-xs text-gray-400">FY {{ $financialYearLabel }}</p>
@@ -76,7 +76,7 @@
             <p class="truncate text-sm font-medium text-gray-900">
               {{ $salesperson->first_name }} {{ $salesperson->last_name }}
             </p>
-            <p class="text-xs text-gray-500">{{ (int) $salesperson->bookings_count }} bookings</p>
+            <p class="text-xs text-gray-500">{{ (int) $salesperson->reservations_count }} reservations</p>
           </div>
           <p class="shrink-0 text-sm font-semibold text-gray-900">
             MUR {{ number_format((float) $salesperson->sales_total) }}

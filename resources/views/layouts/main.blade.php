@@ -43,10 +43,10 @@
             </div>
 
             <!-- Quick links -->
-            <nav class="px-3 pb-3">
+            <nav class="px-3 pb-3" x-data="{ open: false }">
               <ul class="space-y-1">
                 <li>
-                  <a href="#" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-gray-700 hover:bg-white/70">
+                  <button type="button" @click="open = true; $nextTick(() => $refs.searchInput.focus())" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-gray-700 hover:bg-white/70">
                     <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path
                         fill-rule="evenodd"
@@ -55,9 +55,69 @@
                       />
                     </svg>
                     Search
-                  </a>
+                  </button>
                 </li>
               </ul>
+
+              {{-- Search Modal --}}
+              <div x-show="open" x-cloak @keydown.escape.window="open = false" class="fixed inset-0 z-50 flex items-start justify-center px-4 pt-24" style="display: none;">
+                <div class="fixed inset-0 bg-gray-900/40" @click="open = false"></div>
+
+                <div x-show="open" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="relative w-full max-w-lg rounded-2xl bg-white shadow-xl ring-1 ring-gray-200">
+                  <form action="{{ route('search.index') }}" method="GET" class="p-5">
+                    <div class="flex items-center justify-between">
+                      <h2 class="text-base font-semibold text-gray-900">Search</h2>
+                      <button type="button" @click="open = false" class="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    @php
+                      $canSearchClients = auth()->user()?->can('manage-clients') ?? false;
+                      $canSearchAgencies = auth()->user()?->can('manage-agencies') ?? false;
+                      $searchOptionsCount = 1 + (int) $canSearchClients + (int) $canSearchAgencies;
+                    @endphp
+                    <fieldset class="mt-4">
+                      <legend class="sr-only">Search in</legend>
+                      <div class="grid gap-2" style="grid-template-columns: repeat({{ $searchOptionsCount }}, minmax(0, 1fr));">
+                        <label class="flex cursor-pointer items-center justify-center rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 has-[:checked]:border-gray-900 has-[:checked]:bg-gray-900 has-[:checked]:text-white">
+                          <input type="radio" name="type" value="reservation" class="sr-only" checked>
+                          Reservation Ref.
+                        </label>
+                        @if($canSearchClients)
+                          <label class="flex cursor-pointer items-center justify-center rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 has-[:checked]:border-gray-900 has-[:checked]:bg-gray-900 has-[:checked]:text-white">
+                            <input type="radio" name="type" value="client" class="sr-only">
+                            Client name
+                          </label>
+                        @endif
+                        @if($canSearchAgencies)
+                          <label class="flex cursor-pointer items-center justify-center rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 has-[:checked]:border-gray-900 has-[:checked]:bg-gray-900 has-[:checked]:text-white">
+                            <input type="radio" name="type" value="agency" class="sr-only">
+                            Agency name
+                          </label>
+                        @endif
+                      </div>
+                    </fieldset>
+
+                    <div class="mt-4">
+                      <label for="search_query" class="sr-only">Search query</label>
+                      <input type="text" name="q" id="search_query" x-ref="searchInput" placeholder="Type to search…" required
+                        class="block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100">
+                    </div>
+
+                    <div class="mt-5 flex items-center justify-end gap-3">
+                      <button type="button" @click="open = false" class="text-sm font-medium text-gray-700 hover:text-gray-900">
+                        Cancel
+                      </button>
+                      <button type="submit" class="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-200">
+                        Search
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
             </nav>
 
             <div class="border-t border-gray-200"></div>
@@ -78,13 +138,13 @@
                   </a>
                 </li>
 
-                {{-- Bookings --}}
+                {{-- Reservations --}}
                 <li>
                   <a href="{{ route('reservations.index') }}" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm {{ request()->routeIs('reservations.*') ? 'font-semibold text-gray-900 bg-white shadow-sm ring-1 ring-gray-200' : 'text-gray-700 hover:bg-white/70' }}">
                     <svg class="h-5 w-5 {{ request()->routeIs('reservations.*') ? 'text-gray-900' : 'text-gray-400' }}" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path d="M6 3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.414A2 2 0 0 0 15.414 6L13 3.586A2 2 0 0 0 11.586 3H6Z" />
                     </svg>
-                    Bookings
+                    Reservations
                   </a>
                 </li>
 
@@ -184,11 +244,11 @@
               </ul>
             </nav>
 
-            <!-- Today's Bookings -->
+            <!-- Today's Reservations -->
             <div class="px-4 pt-4">
-              <h3 class="text-xs font-semibold text-gray-500">Today's Bookings</h3>
+              <h3 class="text-xs font-semibold text-gray-500">Today's Reservations</h3>
               @php
-                $todaysBookings = \App\Models\Reservation::with('client')
+                $todaysReservations = \App\Models\Reservation::with('client')
                   ->get()
                   ->filter(function ($reservation) {
                     return in_array(now()->format('Y-m-d'), $reservation->dates_booked);
@@ -196,14 +256,14 @@
                   ->take(5);
               @endphp
               <ul class="mt-3 space-y-3 text-sm">
-                @forelse($todaysBookings as $index => $booking)
+                @forelse($todaysReservations as $index => $reservation)
                   <li class="{{ $index === 0 ? 'font-semibold text-gray-900' : 'text-gray-800' }}">
-                    <a href="{{ route('reservations.show', $booking) }}" class="hover:underline">
-                      {{ Str::limit($booking->product, 20) }} • {{ Str::limit($booking->client->company_name, 15) }}
+                    <a href="{{ route('reservations.show', $reservation) }}" class="hover:underline">
+                      {{ Str::limit($reservation->product, 20) }} • {{ Str::limit($reservation->client->company_name, 15) }}
                     </a>
                   </li>
                 @empty
-                  <li class="text-gray-500">No bookings today</li>
+                  <li class="text-gray-500">No reservations today</li>
                 @endforelse
               </ul>
             </div>

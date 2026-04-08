@@ -78,6 +78,12 @@
             @endforelse
           </tbody>
         </table>
+
+        @if($agencies->hasPages())
+          <div class="mt-6">
+            {{ $agencies->links() }}
+          </div>
+        @endif
       </div>
     </div>
   </main>

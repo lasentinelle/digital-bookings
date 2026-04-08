@@ -30,8 +30,8 @@ class CalendarController extends Controller
             ->get()
             ->filter(function ($reservation) use ($startOfMonth, $endOfMonth) {
                 foreach ($reservation->dates_booked as $date) {
-                    $bookingDate = Carbon::parse($date);
-                    if ($bookingDate->between($startOfMonth, $endOfMonth)) {
+                    $reservationDate = Carbon::parse($date);
+                    if ($reservationDate->between($startOfMonth, $endOfMonth)) {
                         return true;
                     }
                 }
@@ -40,16 +40,16 @@ class CalendarController extends Controller
             });
 
         // Build a map of dates to reservations
-        $bookingsByDate = [];
+        $reservationsByDate = [];
         foreach ($reservations as $reservation) {
             foreach ($reservation->dates_booked as $date) {
-                $bookingDate = Carbon::parse($date);
-                if ($bookingDate->between($startOfMonth, $endOfMonth)) {
-                    $dateKey = $bookingDate->format('Y-m-d');
-                    if (! isset($bookingsByDate[$dateKey])) {
-                        $bookingsByDate[$dateKey] = [];
+                $reservationDate = Carbon::parse($date);
+                if ($reservationDate->between($startOfMonth, $endOfMonth)) {
+                    $dateKey = $reservationDate->format('Y-m-d');
+                    if (! isset($reservationsByDate[$dateKey])) {
+                        $reservationsByDate[$dateKey] = [];
                     }
-                    $bookingsByDate[$dateKey][] = $reservation;
+                    $reservationsByDate[$dateKey][] = $reservation;
                 }
             }
         }
@@ -70,7 +70,7 @@ class CalendarController extends Controller
                     'date' => $day,
                     'isCurrentMonth' => $day->month === (int) $month,
                     'isToday' => $day->isToday(),
-                    'bookings' => $bookingsByDate[$dateKey] ?? [],
+                    'reservations' => $reservationsByDate[$dateKey] ?? [],
                 ];
             }
             $weeks[] = $week;
