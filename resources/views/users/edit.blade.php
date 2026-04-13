@@ -63,6 +63,8 @@
                       \App\UserRole::SuperAdmin => 'Super Admin',
                       \App\UserRole::Admin => 'Admin',
                       \App\UserRole::Salesperson => 'Salesperson',
+                      \App\UserRole::Management => 'Management',
+                      \App\UserRole::Finance => 'Finance',
                   } }}
                 </option>
               @endforeach
