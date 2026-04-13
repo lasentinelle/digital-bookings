@@ -147,14 +147,14 @@
     {{-- Monthly Targets Modal --}}
     @can('view-targets')
       <div x-show="showTargets" x-cloak @keydown.escape.window="showTargets = false"
-        class="fixed inset-0 z-50 flex items-start justify-center px-4 pt-16" style="display: none;">
+        class="fixed inset-0 z-50 flex items-start justify-center px-4 pt-10" style="display: none;">
         <div class="fixed inset-0 bg-gray-900/40" @click="showTargets = false"></div>
 
         <div x-show="showTargets"
           x-transition:enter="transition ease-out duration-150"
           x-transition:enter-start="opacity-0 -translate-y-2"
           x-transition:enter-end="opacity-100 translate-y-0"
-          class="relative w-full max-w-2xl rounded-2xl bg-white shadow-xl ring-1 ring-gray-200">
+          class="relative w-full max-w-5xl rounded-2xl bg-white shadow-xl ring-1 ring-gray-200">
           <div class="flex items-start justify-between border-b border-gray-100 px-6 py-4">
             <div>
               <h2 class="text-base font-semibold text-gray-900">Monthly Targets</h2>
@@ -177,38 +177,55 @@
             </div>
           </div>
 
-          <div class="max-h-[60vh] overflow-y-auto px-6 py-5">
-            <table class="w-full text-left text-sm">
-              <thead>
-                <tr class="border-b border-gray-100">
-                  <th class="pb-3 text-xs font-medium uppercase tracking-wider text-gray-500">Salesperson</th>
-                  <th class="pb-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Target</th>
-                  <th class="pb-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Sales</th>
-                  <th class="pb-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Achievement</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-50">
-                @foreach($stats['salespersonTargets'] as $entry)
-                  @php
-                    $pctClass = $entry['percentage'] >= 100 ? 'text-green-600' : ($entry['percentage'] >= 75 ? 'text-amber-600' : 'text-gray-500');
-                  @endphp
-                  <tr>
-                    <td class="py-3 font-medium text-gray-900">
-                      {{ $entry['salesperson']->first_name }} {{ $entry['salesperson']->last_name }}
-                    </td>
-                    <td class="py-3 text-right text-gray-700">MUR {{ number_format($entry['target']) }}</td>
-                    <td class="py-3 text-right text-gray-700">MUR {{ number_format($entry['sales']) }}</td>
-                    <td class="py-3 text-right font-semibold {{ $pctClass }}">
-                      {{ number_format($entry['percentage'], 1) }}%
-                    </td>
-                  </tr>
-                @endforeach
-              </tbody>
-            </table>
+          <div class="max-h-[75vh] overflow-y-auto px-6 py-5">
+            @php $targetMonths = $stats['salespersonTargets']['months']; @endphp
 
-            @if(empty($stats['salespersonTargets']))
-              <p class="py-4 text-center text-sm text-gray-500">No targets set for this financial year.</p>
-            @endif
+            @forelse($stats['salespersonTargets']['salespersons'] as $entry)
+              @php
+                $pctClass = $entry['totals']['percentage'] >= 100 ? 'text-green-600' : ($entry['totals']['percentage'] >= 75 ? 'text-amber-600' : 'text-gray-500');
+              @endphp
+              <div class="{{ ! $loop->first ? 'mt-6 border-t border-gray-100 pt-6' : '' }}">
+                <div class="flex items-baseline justify-between gap-3">
+                  <h3 class="text-sm font-semibold text-gray-900">
+                    {{ $entry['salesperson']->first_name }} {{ $entry['salesperson']->last_name }}
+                  </h3>
+                  <span class="text-xs font-semibold {{ $pctClass }}">
+                    {{ number_format($entry['totals']['percentage'], 1) }}% achievement
+                  </span>
+                </div>
+
+                <div class="mt-3 overflow-x-auto">
+                  <table class="w-full text-left text-xs">
+                    <thead>
+                      <tr class="border-b border-gray-100">
+                        <th class="pb-2 pr-3 font-medium uppercase tracking-wider text-gray-500">Month</th>
+                        <th class="pb-2 pr-3 text-right font-medium uppercase tracking-wider text-gray-500">Target</th>
+                        <th class="pb-2 pr-3 text-right font-medium uppercase tracking-wider text-gray-500">Sales</th>
+                        <th class="pb-2 text-right font-medium uppercase tracking-wider text-gray-500">Reservations</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                      @foreach($targetMonths as $i => $month)
+                        <tr>
+                          <td class="py-2 pr-3 text-gray-700">{{ $month['label'] }}</td>
+                          <td class="py-2 pr-3 text-right text-gray-700">MUR {{ number_format($entry['months'][$i]['target']) }}</td>
+                          <td class="py-2 pr-3 text-right text-gray-700">MUR {{ number_format($entry['months'][$i]['sales']) }}</td>
+                          <td class="py-2 text-right text-gray-700">{{ $entry['months'][$i]['reservations'] }}</td>
+                        </tr>
+                      @endforeach
+                      <tr class="border-t border-gray-200 bg-gray-50 font-semibold">
+                        <td class="py-2 pr-3 text-gray-900">FY Total</td>
+                        <td class="py-2 pr-3 text-right text-gray-900">MUR {{ number_format($entry['totals']['target']) }}</td>
+                        <td class="py-2 pr-3 text-right text-gray-900">MUR {{ number_format($entry['totals']['sales']) }}</td>
+                        <td class="py-2 text-right text-gray-900">{{ $entry['totals']['reservations'] }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            @empty
+              <p class="py-4 text-center text-sm text-gray-500">No salespersons found.</p>
+            @endforelse
           </div>
         </div>
       </div>

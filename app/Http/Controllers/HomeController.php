@@ -6,7 +6,6 @@ use App\Models\Budget;
 use App\Models\Platform;
 use App\Models\Reservation;
 use App\Models\Salesperson;
-use App\Models\SalespersonTarget;
 use App\PlacementType;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -172,42 +171,88 @@ class HomeController extends Controller
     }
 
     /**
-     * Individual monthly targets and sales achievement per salesperson for a platform.
+     * Individual monthly targets, sales, and reservation counts per salesperson for a platform.
      *
-     * @return array<int, array{salesperson: Salesperson, target: float, sales: float, percentage: float}>
+     * @return array{months: list<array{label: string}>, salespersons: list<array{salesperson: Salesperson, months: list<array{target: float, sales: float, reservations: int}>, totals: array{target: float, sales: float, reservations: int, percentage: float}}>}
      */
     private function salespersonTargets(Platform $platform, int $financialYearStart, Carbon $fyStart, Carbon $fyEnd): array
     {
-        $budgetIds = Budget::forFinancialYear($financialYearStart)
+        $fyMonths = Budget::financialYearMonths($financialYearStart);
+
+        // Per-month targets keyed by "salesperson_id-year-month"
+        $budgets = Budget::forFinancialYear($financialYearStart)
             ->where('platform_id', $platform->id)
-            ->pluck('id');
-
-        $targets = SalespersonTarget::query()
-            ->whereIn('budget_id', $budgetIds)
-            ->selectRaw('salesperson_id, SUM(amount) as total_target')
-            ->groupBy('salesperson_id')
-            ->pluck('total_target', 'salesperson_id');
-
-        $salespeople = Salesperson::query()
-            ->withSum(['reservations as sales_total' => function ($query) use ($platform, $fyStart, $fyEnd) {
-                $query->where('platform_id', $platform->id)
-                    ->whereBetween('created_at', [$fyStart, $fyEnd]);
-            }], 'gross_amount')
-            ->orderByDesc('sales_total')
+            ->with('salespersonTargets')
             ->get();
 
-        return $salespeople->map(function (Salesperson $salesperson) use ($targets) {
-            $target = (float) ($targets[$salesperson->id] ?? 0);
-            $sales = (float) $salesperson->sales_total;
-            $percentage = $target > 0 ? ($sales / $target) * 100 : 0;
+        $targetsByKey = [];
+        foreach ($budgets as $budget) {
+            foreach ($budget->salespersonTargets as $st) {
+                $targetsByKey[$st->salesperson_id.'-'.$budget->year.'-'.$budget->month] = (float) $st->amount;
+            }
+        }
+
+        // Per-month sales and reservations keyed by "salesperson_id-year-month"
+        $monthlySales = Reservation::query()
+            ->where('platform_id', $platform->id)
+            ->whereBetween('created_at', [$fyStart, $fyEnd])
+            ->selectRaw("salesperson_id, strftime('%Y', created_at) as y, strftime('%m', created_at) as m, SUM(gross_amount) as total, COUNT(*) as cnt")
+            ->groupBy('salesperson_id', 'y', 'm')
+            ->get();
+
+        $salesByKey = [];
+        $countByKey = [];
+        foreach ($monthlySales as $row) {
+            $key = $row->salesperson_id.'-'.((int) $row->y).'-'.((int) $row->m);
+            $salesByKey[$key] = (float) $row->total;
+            $countByKey[$key] = (int) $row->cnt;
+        }
+
+        $salespeople = Salesperson::query()->orderBy('first_name')->get();
+
+        $salespersons = $salespeople->map(function (Salesperson $salesperson) use ($fyMonths, $targetsByKey, $salesByKey, $countByKey) {
+            $totalTarget = 0;
+            $totalSales = 0;
+            $totalReservations = 0;
+            $months = [];
+
+            foreach ($fyMonths as $m) {
+                $key = $salesperson->id.'-'.$m['year'].'-'.$m['month'];
+                $target = $targetsByKey[$key] ?? 0;
+                $sales = $salesByKey[$key] ?? 0;
+                $reservations = $countByKey[$key] ?? 0;
+
+                $totalTarget += $target;
+                $totalSales += $sales;
+                $totalReservations += $reservations;
+
+                $months[] = [
+                    'target' => $target,
+                    'sales' => $sales,
+                    'reservations' => $reservations,
+                ];
+            }
+
+            $percentage = $totalTarget > 0 ? ($totalSales / $totalTarget) * 100 : 0;
 
             return [
                 'salesperson' => $salesperson,
-                'target' => $target,
-                'sales' => $sales,
-                'percentage' => $percentage,
+                'months' => $months,
+                'totals' => [
+                    'target' => $totalTarget,
+                    'sales' => $totalSales,
+                    'reservations' => $totalReservations,
+                    'percentage' => $percentage,
+                ],
             ];
         })->all();
+
+        $monthLabels = array_map(fn ($m) => ['label' => Carbon::create($m['year'], $m['month'], 1)->format('M Y')], $fyMonths);
+
+        return [
+            'months' => $monthLabels,
+            'salespersons' => $salespersons,
+        ];
     }
 
     /**

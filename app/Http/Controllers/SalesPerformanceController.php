@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Budget;
 use App\Models\Platform;
+use App\Models\Reservation;
 use App\Models\Salesperson;
-use App\Models\SalespersonTarget;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -38,40 +38,87 @@ class SalesPerformanceController extends Controller
     }
 
     /**
-     * @return list<array{salesperson: Salesperson, target: float, sales: float, percentage: float}>
+     * @return array{months: list<array{label: string}>, salespersons: list<mixed>}
      */
     private function buildReport(Platform $platform, int $financialYearStart, Carbon $fyStart, Carbon $fyEnd): array
     {
-        $budgetIds = Budget::forFinancialYear($financialYearStart)
+        $fyMonths = Budget::financialYearMonths($financialYearStart);
+
+        $budgets = Budget::forFinancialYear($financialYearStart)
             ->where('platform_id', $platform->id)
-            ->pluck('id');
-
-        $targets = SalespersonTarget::query()
-            ->whereIn('budget_id', $budgetIds)
-            ->selectRaw('salesperson_id, SUM(amount) as total_target')
-            ->groupBy('salesperson_id')
-            ->pluck('total_target', 'salesperson_id');
-
-        $salespeople = Salesperson::query()
-            ->withSum(['reservations as sales_total' => function ($query) use ($platform, $fyStart, $fyEnd) {
-                $query->where('platform_id', $platform->id)
-                    ->whereBetween('created_at', [$fyStart, $fyEnd]);
-            }], 'gross_amount')
-            ->orderByDesc('sales_total')
+            ->with('salespersonTargets')
             ->get();
 
-        return $salespeople->map(function (Salesperson $salesperson) use ($targets) {
-            $target = (float) ($targets[$salesperson->id] ?? 0);
-            $sales = (float) $salesperson->sales_total;
-            $percentage = $target > 0 ? ($sales / $target) * 100 : 0;
+        $targetsByKey = [];
+        foreach ($budgets as $budget) {
+            foreach ($budget->salespersonTargets as $st) {
+                $targetsByKey[$st->salesperson_id.'-'.$budget->year.'-'.$budget->month] = (float) $st->amount;
+            }
+        }
+
+        $monthlySales = Reservation::query()
+            ->where('platform_id', $platform->id)
+            ->whereBetween('created_at', [$fyStart, $fyEnd])
+            ->selectRaw("salesperson_id, strftime('%Y', created_at) as y, strftime('%m', created_at) as m, SUM(gross_amount) as total, COUNT(*) as cnt")
+            ->groupBy('salesperson_id', 'y', 'm')
+            ->get();
+
+        $salesByKey = [];
+        $countByKey = [];
+        foreach ($monthlySales as $row) {
+            $key = $row->salesperson_id.'-'.((int) $row->y).'-'.((int) $row->m);
+            $salesByKey[$key] = (float) $row->total;
+            $countByKey[$key] = (int) $row->cnt;
+        }
+
+        $salespeople = Salesperson::query()->orderBy('first_name')->get();
+
+        $salespersons = $salespeople->map(function (Salesperson $salesperson) use ($fyMonths, $targetsByKey, $salesByKey, $countByKey) {
+            $totalTarget = 0;
+            $totalSales = 0;
+            $totalReservations = 0;
+            $months = [];
+
+            foreach ($fyMonths as $m) {
+                $key = $salesperson->id.'-'.$m['year'].'-'.$m['month'];
+                $target = $targetsByKey[$key] ?? 0;
+                $sales = $salesByKey[$key] ?? 0;
+                $reservations = $countByKey[$key] ?? 0;
+
+                $totalTarget += $target;
+                $totalSales += $sales;
+                $totalReservations += $reservations;
+
+                $months[] = [
+                    'target' => $target,
+                    'sales' => $sales,
+                    'reservations' => $reservations,
+                ];
+            }
+
+            $percentage = $totalTarget > 0 ? ($totalSales / $totalTarget) * 100 : 0;
 
             return [
                 'salesperson' => $salesperson,
-                'target' => $target,
-                'sales' => $sales,
-                'percentage' => $percentage,
+                'months' => $months,
+                'totals' => [
+                    'target' => $totalTarget,
+                    'sales' => $totalSales,
+                    'reservations' => $totalReservations,
+                    'percentage' => $percentage,
+                ],
             ];
         })->all();
+
+        $monthLabels = array_map(
+            fn ($m) => ['label' => Carbon::create($m['year'], $m['month'], 1)->format('M Y')],
+            $fyMonths,
+        );
+
+        return [
+            'months' => $monthLabels,
+            'salespersons' => $salespersons,
+        ];
     }
 
     private function exportCsv(array $data, Platform $platform, string $financialYearLabel): StreamedResponse
@@ -83,15 +130,29 @@ class SalesPerformanceController extends Controller
 
             fputcsv($handle, ['Sales Performance Report']);
             fputcsv($handle, ['Platform: '.$platform->name, 'Financial Year: '.$financialYearLabel, 'Date: '.now()->format('d/m/Y')]);
-            fputcsv($handle, []);
-            fputcsv($handle, ['Salesperson', 'Target (MUR)', 'Sales (MUR)', 'Achievement (%)']);
 
-            foreach ($data as $entry) {
+            foreach ($data['salespersons'] as $entry) {
+                fputcsv($handle, []);
+                fputcsv($handle, [$entry['salesperson']->first_name.' '.$entry['salesperson']->last_name]);
+                fputcsv($handle, ['Month', 'Target (MUR)', 'Sales (MUR)', 'Reservations']);
+
+                foreach ($data['months'] as $i => $month) {
+                    fputcsv($handle, [
+                        $month['label'],
+                        number_format($entry['months'][$i]['target'], 2, '.', ''),
+                        number_format($entry['months'][$i]['sales'], 2, '.', ''),
+                        $entry['months'][$i]['reservations'],
+                    ]);
+                }
+
                 fputcsv($handle, [
-                    $entry['salesperson']->first_name.' '.$entry['salesperson']->last_name,
-                    number_format($entry['target'], 2, '.', ''),
-                    number_format($entry['sales'], 2, '.', ''),
-                    number_format($entry['percentage'], 1, '.', ''),
+                    'FY Total',
+                    number_format($entry['totals']['target'], 2, '.', ''),
+                    number_format($entry['totals']['sales'], 2, '.', ''),
+                    $entry['totals']['reservations'],
+                ]);
+                fputcsv($handle, [
+                    'Achievement: '.number_format($entry['totals']['percentage'], 1).'%',
                 ]);
             }
 
@@ -114,7 +175,7 @@ class SalesPerformanceController extends Controller
             'now',
             'logoPath',
         ))
-            ->setPaper('a4', 'portrait')
+            ->setPaper('a4', 'landscape')
             ->download($filename);
     }
 }
