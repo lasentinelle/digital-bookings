@@ -22,10 +22,7 @@
   <div class="rounded-2xl bg-white p-5 ring-1 ring-gray-200 shadow-sm">
     <p class="text-xs font-medium uppercase tracking-wider text-gray-500">{{ now()->format('F') }} Sales</p>
     <p class="mt-2 text-2xl font-semibold text-gray-900">MUR {{ number_format($stats['currentMonthSales']) }}</p>
-    @php
-      $monthPctClass = $stats['currentMonthPercentage'] >= 100 ? 'text-green-600' : ($stats['currentMonthPercentage'] >= 75 ? 'text-amber-600' : 'text-gray-500');
-    @endphp
-    <p class="mt-1 text-xs font-medium {{ $monthPctClass }}">
+    <p class="mt-1 text-xs text-gray-400">
       {{ number_format($stats['currentMonthPercentage'], 1) }}% of target
     </p>
   </div>
@@ -56,7 +53,7 @@
       };
     @endphp
     <p class="mt-2 text-2xl font-semibold {{ $yearPctClass }}">{{ number_format($stats['yearlyPercentage'], 1) }}%</p>
-    <p class="mt-1 text-xs {{ $yearPctClass }}">Achieved</p>
+    <p class="mt-1 text-xs text-gray-400">FY {{ $financialYearLabel }}</p>
     <div class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
       <div class="h-full {{ $yearBarClass }}" style="width: {{ min(100, $stats['yearlyPercentage']) }}%"></div>
     </div>
@@ -130,7 +127,7 @@
     <p class="text-xs font-medium uppercase tracking-wider text-gray-500">Salesperson Performance</p>
     <p class="mt-1 text-xs text-gray-400">FY {{ $financialYearLabel }}</p>
     <div class="mt-4 space-y-3">
-      @forelse($stats['salespersonStats']->take(3) as $salesperson)
+      @forelse($stats['salespersonStats']->take(4) as $salesperson)
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <p class="truncate text-sm font-medium text-gray-900">
@@ -344,9 +341,11 @@
     @php
       $webEarnings = (float) ($stats['placementEarnings'][\App\PlacementType::Web->value] ?? 0);
       $socialEarnings = (float) ($stats['placementEarnings'][\App\PlacementType::SocialMedia->value] ?? 0);
-      $totalEarnings = $webEarnings + $socialEarnings;
+      $programmaticEarnings = (float) ($stats['placementEarnings'][\App\PlacementType::Programmatic->value] ?? 0);
+      $totalEarnings = $webEarnings + $socialEarnings + $programmaticEarnings;
       $webShare = $totalEarnings > 0 ? ($webEarnings / $totalEarnings) * 100 : 0;
       $socialShare = $totalEarnings > 0 ? ($socialEarnings / $totalEarnings) * 100 : 0;
+      $programmaticShare = $totalEarnings > 0 ? ($programmaticEarnings / $totalEarnings) * 100 : 0;
     @endphp
     <div class="mt-4 space-y-4">
       <div>
@@ -366,7 +365,17 @@
         </div>
         <p class="mt-1 text-sm font-semibold text-gray-900">MUR {{ number_format($socialEarnings) }}</p>
         <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-          <div class="h-full bg-gray-500" style="width: {{ $socialShare }}%;"></div>
+          <div class="h-full bg-gray-900" style="width: {{ $socialShare }}%;"></div>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-sm font-medium text-gray-900">Programmatic</p>
+          <p class="text-xs font-medium text-gray-500">{{ number_format($programmaticShare, 1) }}%</p>
+        </div>
+        <p class="mt-1 text-sm font-semibold text-gray-900">MUR {{ number_format($programmaticEarnings) }}</p>
+        <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+          <div class="h-full bg-gray-900" style="width: {{ $programmaticShare }}%;"></div>
         </div>
       </div>
     </div>

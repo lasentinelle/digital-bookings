@@ -325,7 +325,6 @@ it('leaves the yearly target neutral when no budget has been set', function () {
     $this->actingAs($user)
         ->get(route('home'))
         ->assertOk()
-        ->assertSee('Achieved')
         ->assertDontSee('text-green-600', false)
         ->assertDontSee('text-amber-600', false)
         ->assertDontSee('text-red-600', false);

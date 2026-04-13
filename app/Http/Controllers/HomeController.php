@@ -357,6 +357,7 @@ class HomeController extends Controller
         return [
             PlacementType::Web->value => (float) ($totals[PlacementType::Web->value] ?? 0),
             PlacementType::SocialMedia->value => (float) ($totals[PlacementType::SocialMedia->value] ?? 0),
+            PlacementType::Programmatic->value => (float) ($totals[PlacementType::Programmatic->value] ?? 0),
         ];
     }
 
