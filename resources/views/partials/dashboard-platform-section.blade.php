@@ -71,7 +71,7 @@
     <p class="text-xs font-medium uppercase tracking-wider text-gray-500">Salesperson Performance</p>
     <p class="mt-1 text-xs text-gray-400">FY {{ $financialYearLabel }}</p>
     <div class="mt-4 space-y-3">
-      @forelse($stats['salespersonStats']->take(4) as $salesperson)
+      @forelse($stats['salespersonStats']->take(3) as $salesperson)
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <p class="truncate text-sm font-medium text-gray-900">
