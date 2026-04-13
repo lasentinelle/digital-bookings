@@ -35,7 +35,7 @@
             <nav class="px-3 pb-3" x-data="{ open: false }">
               <ul class="space-y-1">
                 <li>
-                  <button type="button" @click="open = true; $nextTick(() => $refs.searchInput.focus())" class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-gray-700 hover:bg-white/70">
+                  <button type="button" @click="open = true; $nextTick(() => $refs.searchInput.focus())" class="flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm text-gray-700 hover:bg-white/70">
                     <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path
                         fill-rule="evenodd"
