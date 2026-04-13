@@ -6,6 +6,7 @@ use App\Models\Budget;
 use App\Models\Platform;
 use App\Models\Reservation;
 use App\Models\Salesperson;
+use App\Models\SalespersonTarget;
 use App\PlacementType;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -129,6 +130,8 @@ class HomeController extends Controller
         $monthlySalesColors = self::MONTHLY_SALES_CHART_COLORS[$platform->name]
             ?? self::MONTHLY_SALES_CHART_DEFAULT_COLORS;
 
+        $salespersonTargets = $this->salespersonTargets($platform, $financialYearStart, $fyStart, $fyEnd);
+
         return [
             'platform' => $platform,
             'yearlyBudget' => $yearlyBudget,
@@ -139,6 +142,7 @@ class HomeController extends Controller
             'yearlyPercentage' => $yearlyPercentage,
             'yearlyTargetState' => $yearlyTargetState,
             'salespersonStats' => $salespersonStats,
+            'salespersonTargets' => $salespersonTargets,
             'monthlySalesComparison' => $monthlySalesComparison,
             'monthlySalesMax' => $monthlySalesMax,
             'monthlySalesCurrentColor' => $monthlySalesColors['current'],
@@ -165,6 +169,45 @@ class HomeController extends Controller
             }], 'gross_amount')
             ->orderByDesc('sales_total')
             ->get();
+    }
+
+    /**
+     * Individual monthly targets and sales achievement per salesperson for a platform.
+     *
+     * @return array<int, array{salesperson: Salesperson, target: float, sales: float, percentage: float}>
+     */
+    private function salespersonTargets(Platform $platform, int $financialYearStart, Carbon $fyStart, Carbon $fyEnd): array
+    {
+        $budgetIds = Budget::forFinancialYear($financialYearStart)
+            ->where('platform_id', $platform->id)
+            ->pluck('id');
+
+        $targets = SalespersonTarget::query()
+            ->whereIn('budget_id', $budgetIds)
+            ->selectRaw('salesperson_id, SUM(amount) as total_target')
+            ->groupBy('salesperson_id')
+            ->pluck('total_target', 'salesperson_id');
+
+        $salespeople = Salesperson::query()
+            ->withSum(['reservations as sales_total' => function ($query) use ($platform, $fyStart, $fyEnd) {
+                $query->where('platform_id', $platform->id)
+                    ->whereBetween('created_at', [$fyStart, $fyEnd]);
+            }], 'gross_amount')
+            ->orderByDesc('sales_total')
+            ->get();
+
+        return $salespeople->map(function (Salesperson $salesperson) use ($targets) {
+            $target = (float) ($targets[$salesperson->id] ?? 0);
+            $sales = (float) $salesperson->sales_total;
+            $percentage = $target > 0 ? ($sales / $target) * 100 : 0;
+
+            return [
+                'salesperson' => $salesperson,
+                'target' => $target,
+                'sales' => $sales,
+                'percentage' => $percentage,
+            ];
+        })->all();
     }
 
     /**
