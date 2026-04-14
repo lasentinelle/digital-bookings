@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Agency;
 use App\Models\Client;
 use App\Models\Reservation;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -11,12 +10,12 @@ use Illuminate\View\View;
 
 class SearchController extends Controller
 {
-    private const ALLOWED_TYPES = ['reservation', 'client', 'agency'];
+    private const ALLOWED_TYPES = ['reservation', 'client'];
 
     private const PER_PAGE = 20;
 
     /**
-     * Display paginated search results for reservations, clients, or agencies.
+     * Display paginated search results for reservations or clients.
      */
     public function index(Request $request): View
     {
@@ -43,17 +42,12 @@ class SearchController extends Controller
 
         return match ($type) {
             'reservation' => Reservation::query()
-                ->with(['client', 'agency', 'platform', 'placement'])
+                ->with(['client', 'representedClient', 'platform', 'placement'])
                 ->where('reference', 'like', $like)
                 ->latest()
                 ->paginate(self::PER_PAGE)
                 ->withQueryString(),
             'client' => Client::query()
-                ->where('company_name', 'like', $like)
-                ->orderBy('company_name')
-                ->paginate(self::PER_PAGE)
-                ->withQueryString(),
-            'agency' => Agency::query()
                 ->where('company_name', 'like', $like)
                 ->orderBy('company_name')
                 ->paginate(self::PER_PAGE)

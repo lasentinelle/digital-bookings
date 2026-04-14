@@ -62,6 +62,17 @@
           @enderror
         </div>
 
+        <div>
+          <label for="sage_salesperson_code" class="block text-sm font-medium text-gray-700">SAGE Salesperson Code</label>
+          <div class="mt-2">
+            <input type="text" name="sage_salesperson_code" id="sage_salesperson_code" value="{{ old('sage_salesperson_code') }}" maxlength="50"
+              class="block w-full rounded-lg border @error('sage_salesperson_code') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100" />
+          </div>
+          @error('sage_salesperson_code')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+          @enderror
+        </div>
+
         <div class="flex items-center gap-4">
           <button type="submit" class="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-200">
             Save Salesperson

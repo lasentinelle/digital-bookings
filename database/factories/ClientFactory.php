@@ -4,10 +4,11 @@ namespace Database\Factories;
 
 use App\CommissionType;
 use App\DiscountType;
+use App\Models\Client;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Client>
+ * @extends Factory<Client>
  */
 class ClientFactory extends Factory
 {
@@ -21,6 +22,7 @@ class ClientFactory extends Factory
         return [
             'company_name' => fake()->company(),
             'brn' => fake()->unique()->numerify('C########'),
+            'sage_client_code' => 'ART-'.str_pad((string) fake()->unique()->numberBetween(1, 9999), 4, '0', STR_PAD_LEFT),
             'vat_number' => fake()->optional()->randomNumber(8),
             'vat_exempt' => fake()->boolean(20),
             'phone' => fake()->phoneNumber(),

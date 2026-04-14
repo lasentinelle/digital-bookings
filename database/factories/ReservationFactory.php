@@ -2,15 +2,16 @@
 
 namespace Database\Factories;
 
-use App\Models\Agency;
 use App\Models\Client;
 use App\Models\Placement;
+use App\Models\Reservation;
 use App\Models\Salesperson;
 use App\ReservationStatus;
+use App\ReservationType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Reservation>
+ * @extends Factory<Reservation>
  */
 class ReservationFactory extends Factory
 {
@@ -29,10 +30,10 @@ class ReservationFactory extends Factory
 
         return [
             'client_id' => Client::factory(),
-            'agency_id' => fake()->optional()->passthrough(Agency::factory()),
             'salesperson_id' => fake()->optional()->passthrough(Salesperson::factory()),
             'product' => fake()->words(3, true),
             'placement_id' => Placement::factory(),
+            'type' => ReservationType::Standard,
             'channel' => fake()->randomElement(['Run of site', 'Home & multimedia']),
             'scope' => fake()->randomElement(['Mauritius only', 'Worldwide']),
             'dates_booked' => $dates,
@@ -40,9 +41,11 @@ class ReservationFactory extends Factory
             'total_amount_to_pay' => fake()->randomFloat(2, 500, 49500),
             'discount' => fake()->randomFloat(2, 0, 500),
             'commission' => fake()->randomFloat(2, 0, 1000),
-            'cost_of_artwork' => fake()->randomFloat(2, 0, 2000),
             'vat' => fake()->randomFloat(2, 0, 5000),
             'vat_exempt' => fake()->boolean(20),
+            'is_cash' => false,
+            'is_foreign_currency' => false,
+            'bill_at_end_of_campaign' => false,
             'status' => fake()->randomElement(ReservationStatus::cases()),
             'purchase_order_no' => fake()->optional()->numerify('PO-####'),
             'invoice_no' => fake()->optional()->numerify('INV-####'),

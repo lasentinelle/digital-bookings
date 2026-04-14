@@ -390,6 +390,9 @@
         @if($reservation->invoice_no)
           <div class="doc-date">Invoice #: {{ $reservation->invoice_no }}</div>
         @endif
+        @if($reservation->is_cash)
+          <div class="doc-date" style="font-weight: bold; color: #1a365d;">Payment: Cash</div>
+        @endif
       </div>
     </div>
 
@@ -429,16 +432,22 @@
         @endif
       </div>
       <div class="info-col">
-        @if($reservation->agency)
-          <div class="section-label">Agency Information</div>
+        @if($reservation->representedClient)
+          <div class="section-label">Representing</div>
           <div class="field-row">
-            <div class="field-label">Agency</div>
-            <div class="field-value">{{ $reservation->agency->company_name }}</div>
+            <div class="field-label">Company</div>
+            <div class="field-value">{{ $reservation->representedClient->company_name }}</div>
           </div>
-          @if($reservation->agency->contact_person_name)
+          @if($reservation->representedClient->brn)
+            <div class="field-row">
+              <div class="field-label">BRN</div>
+              <div class="field-value">{{ $reservation->representedClient->brn }}</div>
+            </div>
+          @endif
+          @if($reservation->representedClient->contact_person_name)
             <div class="field-row">
               <div class="field-label">Contact Person</div>
-              <div class="field-value">{{ $reservation->agency->contact_person_name }}</div>
+              <div class="field-value">{{ $reservation->representedClient->contact_person_name }}</div>
             </div>
           @endif
         @endif
@@ -487,6 +496,11 @@
           <span class="date-badge">{{ $range }}</span>
         @endforeach
       </div>
+      @if($reservation->bill_at_end_of_campaign)
+        <div style="margin-top: 6px; font-size: 10px; font-weight: bold; color: #1a365d;">
+          Billing: at end of campaign
+        </div>
+      @endif
     </div>
 
     <hr class="divider-light">
@@ -517,12 +531,6 @@
             <td>- {{ number_format($reservation->commission, 2) }}</td>
           </tr>
         @endif
-        @if($reservation->cost_of_artwork > 0)
-          <tr>
-            <td>Cost of Artwork</td>
-            <td>{{ number_format($reservation->cost_of_artwork, 2) }}</td>
-          </tr>
-        @endif
         <tr>
           <td>VAT (15%) {{ $reservation->vat_exempt ? '— Exempt' : '' }}</td>
           <td>{{ number_format($reservation->vat, 2) }}</td>
@@ -531,8 +539,22 @@
           <td>Total Amount to Pay</td>
           <td>MUR {{ number_format($reservation->total_amount_to_pay, 2) }}</td>
         </tr>
+        @if($reservation->is_foreign_currency && $reservation->foreign_currency_code)
+          <tr>
+            <td>Foreign Currency Equivalent</td>
+            <td>{{ $reservation->foreign_currency_code->value }} {{ number_format((float) $reservation->foreign_currency_amount, 2) }}</td>
+          </tr>
+        @endif
       </tbody>
     </table>
+
+    @if($reservation->parent)
+      <div style="margin-top: 12px; font-size: 10px; color: #1a365d;">
+        <strong>Linked to parent reservation:</strong>
+        <span style="font-family: 'Courier New', monospace;">{{ $reservation->parent->reference }}</span>
+        — {{ $reservation->parent->product }}
+      </div>
+    @endif
 
     {{-- Remark --}}
     @if($reservation->remark)

@@ -54,13 +54,7 @@ class AppServiceProvider extends ServiceProvider
             UserRole::SuperAdmin, UserRole::Admin, UserRole::Salesperson,
         ));
 
-        Gate::define('manage-agencies', fn (User $user) => $user->hasRole(
-            UserRole::SuperAdmin, UserRole::Admin, UserRole::Salesperson,
-        ));
-
         Gate::define('delete-clients', fn (User $user) => $user->hasRole(UserRole::SuperAdmin, UserRole::Admin));
-
-        Gate::define('delete-agencies', fn (User $user) => $user->hasRole(UserRole::SuperAdmin, UserRole::Admin));
 
         Gate::define('manage-salespeople', fn (User $user) => $user->hasRole(UserRole::SuperAdmin, UserRole::Admin));
 
@@ -71,5 +65,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('edit-financials', fn (User $user) => $user->hasRole(UserRole::SuperAdmin, UserRole::Admin));
 
         Gate::define('view-targets', fn (User $user) => $user->hasRole(UserRole::SuperAdmin, UserRole::Management));
+
+        Gate::define('sage-export', fn (User $user) => $user->hasRole(UserRole::SuperAdmin, UserRole::Admin, UserRole::Finance));
     }
 }

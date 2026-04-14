@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\AgencyController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ClientController;
@@ -8,6 +7,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PlacementController;
 use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\ReservationController;
+use App\Http\Controllers\SageExportController;
 use App\Http\Controllers\SalesPerformanceController;
 use App\Http\Controllers\SalespersonController;
 use App\Http\Controllers\SearchController;
@@ -55,13 +55,12 @@ Route::middleware('auth')->group(function () {
             ->name('budgets.update');
     });
 
-    // Admin & Super Admin: manage salespeople, platforms, placements, and delete clients/agencies
+    // Admin & Super Admin: manage salespeople, platforms, placements, and delete clients
     Route::middleware('role:super_admin,admin')->group(function () {
         Route::resource('salespeople', SalespersonController::class)->except(['show']);
         Route::resource('placements', PlacementController::class);
         Route::resource('platforms', PlatformController::class);
         Route::delete('clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
-        Route::delete('agencies/{agency}', [AgencyController::class, 'destroy'])->name('agencies.destroy');
     });
 
     // Dashboard & Calendar: super_admin, admin, salesperson, management
@@ -69,10 +68,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
     });
 
-    // Clients & Agencies: super_admin, admin, salesperson
+    // Clients: super_admin, admin, salesperson
     Route::middleware('role:super_admin,admin,salesperson')->group(function () {
         Route::resource('clients', ClientController::class)->except(['destroy']);
-        Route::resource('agencies', AgencyController::class)->except(['destroy']);
     });
 
     // Reservations write: super_admin, admin, salesperson
@@ -83,6 +81,12 @@ Route::middleware('auth')->group(function () {
         Route::put('reservations/{reservation}', [ReservationController::class, 'update'])->name('reservations.update');
         Route::delete('reservations/{reservation}', [ReservationController::class, 'destroy'])->name('reservations.destroy');
         Route::post('reservations/{reservation}/upload-document', [ReservationController::class, 'uploadDocument'])->name('reservations.upload-document');
+    });
+
+    // SAGE Export: super_admin, admin, finance (defined before reservations read group to avoid binding collision)
+    Route::middleware('role:super_admin,admin,finance')->group(function () {
+        Route::get('reservations/sage-export', SageExportController::class)
+            ->name('reservations.sage-export');
     });
 
     // Reservations read: super_admin, admin, salesperson, finance

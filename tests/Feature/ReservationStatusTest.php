@@ -6,6 +6,7 @@ use App\Models\Reservation;
 use App\Models\User;
 use App\PlacementType;
 use App\ReservationStatus;
+use App\ReservationType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -48,6 +49,7 @@ it('lets a user create a reservation with a chosen status', function () {
         'client_id' => $client->id,
         'product' => 'Banner campaign',
         'placement_id' => $placement->id,
+        'type' => ReservationType::Standard->value,
         'channel' => 'Run of site',
         'scope' => 'Mauritius only',
         'dates_booked' => json_encode(['2026-05-01']),
@@ -70,6 +72,7 @@ it('lets a user update a reservation status', function () {
         'client_id' => $reservation->client_id,
         'product' => $reservation->product,
         'placement_id' => $reservation->placement_id,
+        'type' => $reservation->type->value,
         'channel' => $reservation->channel,
         'scope' => $reservation->scope,
         'dates_booked' => json_encode($reservation->dates_booked),

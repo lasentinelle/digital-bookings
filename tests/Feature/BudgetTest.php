@@ -8,6 +8,7 @@ use App\Models\Salesperson;
 use App\Models\SalespersonTarget;
 use App\Models\User;
 use App\PlacementType;
+use App\ReservationStatus;
 use App\UserRole;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -235,6 +236,7 @@ it('shows the second row of dashboard cards on the home page', function () {
         'salesperson_id' => $salesperson->id,
         'platform_id' => $platform->id,
         'gross_amount' => 12345,
+        'status' => ReservationStatus::Confirmed,
     ]);
     $current->created_at = $insideCurrentFy;
     $current->updated_at = $insideCurrentFy;
@@ -244,6 +246,7 @@ it('shows the second row of dashboard cards on the home page', function () {
         'salesperson_id' => $salesperson->id,
         'platform_id' => $platform->id,
         'gross_amount' => 6789,
+        'status' => ReservationStatus::Confirmed,
     ]);
     $previous->created_at = $insidePreviousFy;
     $previous->updated_at = $insidePreviousFy;
@@ -278,6 +281,7 @@ it('colours the yearly target based on actual vs expected progress', function (f
         $reservation = Reservation::factory()->create([
             'platform_id' => $platform->id,
             'gross_amount' => $sales,
+            'status' => ReservationStatus::Confirmed,
         ]);
         $reservation->created_at = Carbon::create(2025, 9, 15);
         $reservation->updated_at = Carbon::create(2025, 9, 15);
@@ -349,6 +353,7 @@ it('splits sales by placement into web and social media type', function () {
         'platform_id' => $platform->id,
         'placement_id' => $webPlacement->id,
         'gross_amount' => 40000,
+        'status' => ReservationStatus::Confirmed,
     ]);
     $webReservation->created_at = $insideCurrentFy;
     $webReservation->saveQuietly();
@@ -357,6 +362,7 @@ it('splits sales by placement into web and social media type', function () {
         'platform_id' => $platform->id,
         'placement_id' => $socialPlacement->id,
         'gross_amount' => 10000,
+        'status' => ReservationStatus::Confirmed,
     ]);
     $socialReservation->created_at = $insideCurrentFy;
     $socialReservation->saveQuietly();

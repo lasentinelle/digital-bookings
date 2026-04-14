@@ -6,6 +6,7 @@ use App\Models\Budget;
 use App\Models\Platform;
 use App\Models\Reservation;
 use App\Models\Salesperson;
+use App\ReservationStatus;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -58,6 +59,7 @@ class SalesPerformanceController extends Controller
 
         $monthlySales = Reservation::query()
             ->where('platform_id', $platform->id)
+            ->where('status', ReservationStatus::Confirmed->value)
             ->whereBetween('created_at', [$fyStart, $fyEnd])
             ->selectRaw("salesperson_id, strftime('%Y', created_at) as y, strftime('%m', created_at) as m, SUM(gross_amount) as total, COUNT(*) as cnt")
             ->groupBy('salesperson_id', 'y', 'm')

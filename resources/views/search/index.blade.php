@@ -4,7 +4,6 @@
   $typeLabels = [
     'reservation' => 'Reservation Reference',
     'client' => 'Client Name',
-    'agency' => 'Agency Name',
   ];
   $typeLabel = $typeLabels[$type] ?? 'Reservation Reference';
 @endphp
@@ -41,12 +40,6 @@
                   <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Placement</th>
                   <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Gross Amount</th>
                   <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Actions</th>
-                @elseif($type === 'client')
-                  <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Company</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">BRN</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Phone</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Contact Person</th>
-                  <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Actions</th>
                 @else
                   <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Company</th>
                   <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">BRN</th>
@@ -71,23 +64,13 @@
                         View
                       </a>
                     </td>
-                  @elseif($type === 'client')
-                    <td class="px-4 py-3 text-sm text-gray-900">{{ $row->company_name }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">{{ $row->brn }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">{{ $row->phone }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">{{ $row->contact_person_name ?? '—' }}</td>
-                    <td class="px-4 py-3 text-right">
-                      <a href="{{ route('clients.show', $row) }}" class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
-                        View
-                      </a>
-                    </td>
                   @else
                     <td class="px-4 py-3 text-sm text-gray-900">{{ $row->company_name }}</td>
                     <td class="px-4 py-3 text-sm text-gray-600">{{ $row->brn }}</td>
                     <td class="px-4 py-3 text-sm text-gray-600">{{ $row->phone }}</td>
                     <td class="px-4 py-3 text-sm text-gray-600">{{ $row->contact_person_name ?? '—' }}</td>
                     <td class="px-4 py-3 text-right">
-                      <a href="{{ route('agencies.show', $row) }}" class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                      <a href="{{ route('clients.show', $row) }}" class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
                         View
                       </a>
                     </td>
