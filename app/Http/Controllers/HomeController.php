@@ -7,6 +7,7 @@ use App\Models\Platform;
 use App\Models\Reservation;
 use App\Models\Salesperson;
 use App\PlacementType;
+use App\ReservationStatus;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -89,6 +90,7 @@ class HomeController extends Controller
 
         $currentMonthSales = (float) Reservation::query()
             ->where('platform_id', $platform->id)
+            ->where('status', ReservationStatus::Confirmed)
             ->whereBetween('created_at', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()])
             ->sum('gross_amount');
 
@@ -98,6 +100,7 @@ class HomeController extends Controller
 
         $cumulatedSales = (float) Reservation::query()
             ->where('platform_id', $platform->id)
+            ->where('status', ReservationStatus::Confirmed)
             ->whereBetween('created_at', [$fyStart, $now])
             ->sum('gross_amount');
 
@@ -163,10 +166,12 @@ class HomeController extends Controller
         return Salesperson::query()
             ->withCount(['reservations as reservations_count' => function ($query) use ($platform, $fyStart, $fyEnd) {
                 $query->where('platform_id', $platform->id)
+                    ->where('status', ReservationStatus::Confirmed)
                     ->whereBetween('created_at', [$fyStart, $fyEnd]);
             }])
             ->withSum(['reservations as sales_total' => function ($query) use ($platform, $fyStart, $fyEnd) {
                 $query->where('platform_id', $platform->id)
+                    ->where('status', ReservationStatus::Confirmed)
                     ->whereBetween('created_at', [$fyStart, $fyEnd]);
             }], 'gross_amount')
             ->orderByDesc('sales_total')
@@ -198,6 +203,7 @@ class HomeController extends Controller
         // Per-month sales and reservations keyed by "salesperson_id-year-month"
         $monthlySales = Reservation::query()
             ->where('platform_id', $platform->id)
+            ->where('status', ReservationStatus::Confirmed->value)
             ->whereBetween('created_at', [$fyStart, $fyEnd])
             ->selectRaw("salesperson_id, strftime('%Y', created_at) as y, strftime('%m', created_at) as m, SUM(gross_amount) as total, COUNT(*) as cnt")
             ->groupBy('salesperson_id', 'y', 'm')
@@ -329,6 +335,7 @@ class HomeController extends Controller
     {
         return Reservation::query()
             ->where('platform_id', $platform->id)
+            ->where('status', ReservationStatus::Confirmed->value)
             ->whereBetween('created_at', [$start, $end])
             ->selectRaw("strftime('%Y', created_at) as y, strftime('%m', created_at) as m, SUM(gross_amount) as total")
             ->groupBy('y', 'm')
@@ -347,6 +354,7 @@ class HomeController extends Controller
         $totals = Reservation::query()
             ->join('placements', 'reservations.placement_id', '=', 'placements.id')
             ->where('reservations.platform_id', $platform->id)
+            ->where('reservations.status', ReservationStatus::Confirmed->value)
             ->whereBetween('reservations.created_at', [$fyStart, $fyEnd])
             ->selectRaw('placements.type as type, SUM(reservations.gross_amount) as total')
             ->groupBy('placements.type')

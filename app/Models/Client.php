@@ -22,6 +22,7 @@ class Client extends Model
         'company_logo',
         'brn',
         'vat_number',
+        'sage_client_code',
         'vat_exempt',
         'phone',
         'address',

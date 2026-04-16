@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\ForeignCurrency;
 use App\ReservationStatus;
+use App\ReservationType;
 use App\UserRole;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -19,6 +21,26 @@ class ReservationRequest extends FormRequest
     }
 
     /**
+     * Normalise inputs before validation runs.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->input('type') === ReservationType::CostOfArtwork->value) {
+            $this->merge([
+                'discount' => 0,
+                'commission' => 0,
+            ]);
+        }
+
+        if (! $this->boolean('is_foreign_currency')) {
+            $this->merge([
+                'foreign_currency_amount' => null,
+                'foreign_currency_code' => null,
+            ]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -27,11 +49,13 @@ class ReservationRequest extends FormRequest
     {
         return [
             'client_id' => ['required', 'exists:clients,id'],
-            'agency_id' => ['nullable', 'exists:agencies,id'],
+            'represented_client_id' => ['nullable', 'exists:clients,id', 'different:client_id'],
+            'parent_reservation_id' => ['nullable', 'exists:reservations,id'],
             'salesperson_id' => ['nullable', 'exists:salespeople,id'],
             'product' => ['required', 'string', 'max:255'],
             'platform_id' => ['nullable', 'exists:platforms,id'],
             'placement_id' => ['required', 'exists:placements,id'],
+            'type' => ['required', Rule::enum(ReservationType::class)],
             'channel' => ['required', Rule::in(['Run of site', 'Home & multimedia'])],
             'scope' => ['required', Rule::in(['Mauritius only', 'Worldwide'])],
             'dates_booked' => ['required', 'json'],
@@ -39,9 +63,13 @@ class ReservationRequest extends FormRequest
             'total_amount_to_pay' => ['required', 'numeric', 'min:0'],
             'discount' => ['nullable', 'numeric', 'min:0'],
             'commission' => ['nullable', 'numeric', 'min:0'],
-            'cost_of_artwork' => ['nullable', 'numeric', 'min:0'],
             'vat' => ['nullable', 'numeric', 'min:0'],
             'vat_exempt' => ['boolean'],
+            'is_cash' => ['boolean'],
+            'is_foreign_currency' => ['boolean'],
+            'foreign_currency_amount' => ['nullable', 'numeric', 'min:0', 'required_if:is_foreign_currency,1'],
+            'foreign_currency_code' => ['nullable', Rule::enum(ForeignCurrency::class), 'required_if:is_foreign_currency,1'],
+            'bill_at_end_of_campaign' => ['boolean'],
             'status' => ['required', Rule::enum(ReservationStatus::class)],
             'purchase_order_no' => ['nullable', 'string', 'max:255'],
             'purchase_order_file' => ['nullable', 'file', 'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,gif,webp', 'max:10240'],

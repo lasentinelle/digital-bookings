@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Agency;
 use App\Models\Client;
 use App\Models\Placement;
 use App\Models\Platform;
@@ -68,9 +67,6 @@ class ReservationSeeder extends Seeder
         /** @var list<int> $clientIds */
         $clientIds = Client::query()->pluck('id')->all();
 
-        /** @var list<int> $agencyIds */
-        $agencyIds = Agency::query()->pluck('id')->all();
-
         /** @var list<int> $salespersonIds */
         $salespersonIds = Salesperson::query()->pluck('id')->all();
 
@@ -100,7 +96,6 @@ class ReservationSeeder extends Seeder
             $lexpressPlacements,
             $fivePlusPlacements,
             $clientIds,
-            $agencyIds,
             $salespersonIds,
         ): void {
             $current = $startDate->copy();
@@ -126,7 +121,6 @@ class ReservationSeeder extends Seeder
                             counter: $counter,
                             placement: $platformPlacements->random(),
                             clientIds: $clientIds,
-                            agencyIds: $agencyIds,
                             salespersonIds: $salespersonIds,
                         );
                     }
@@ -141,10 +135,6 @@ class ReservationSeeder extends Seeder
     {
         if (Client::query()->count() < 20) {
             Client::factory()->count(20 - Client::query()->count())->create();
-        }
-
-        if (Agency::query()->count() < 10) {
-            Agency::factory()->count(10 - Agency::query()->count())->create();
         }
     }
 
@@ -169,7 +159,6 @@ class ReservationSeeder extends Seeder
 
     /**
      * @param  list<int>  $clientIds
-     * @param  list<int>  $agencyIds
      * @param  list<int>  $salespersonIds
      */
     private function createReservation(
@@ -177,7 +166,6 @@ class ReservationSeeder extends Seeder
         int $counter,
         Placement $placement,
         array $clientIds,
-        array $agencyIds,
         array $salespersonIds,
     ): void {
         $daysInMonth = $month->daysInMonth;
@@ -194,7 +182,6 @@ class ReservationSeeder extends Seeder
             : round((float) $placement->price * $numDates * (0.9 + (random_int(0, 30) / 100)), 2);
         $discount = round($grossAmount * (random_int(0, 15) / 100), 2);
         $commission = round($grossAmount * (random_int(5, 12) / 100), 2);
-        $costOfArtwork = random_int(0, 3) === 0 ? (float) random_int(1000, 5000) : 0.0;
 
         $vatExempt = random_int(1, 100) <= 15;
         $netAfterDiscount = $grossAmount - $discount;
@@ -214,7 +201,6 @@ class ReservationSeeder extends Seeder
         $reservation->fill([
             'reference' => $reference,
             'client_id' => $clientIds[array_rand($clientIds)],
-            'agency_id' => random_int(0, 1) === 0 && $agencyIds !== [] ? $agencyIds[array_rand($agencyIds)] : null,
             'salesperson_id' => $salespersonIds[array_rand($salespersonIds)],
             'product' => $this->products[array_rand($this->products)],
             'platform_id' => $placement->platform_id,
@@ -226,7 +212,6 @@ class ReservationSeeder extends Seeder
             'total_amount_to_pay' => $totalAmountToPay,
             'discount' => $discount,
             'commission' => $commission,
-            'cost_of_artwork' => $costOfArtwork,
             'vat' => $vat,
             'vat_exempt' => $vatExempt,
             'status' => $status,

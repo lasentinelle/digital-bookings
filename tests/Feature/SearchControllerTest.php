@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Agency;
 use App\Models\Client;
 use App\Models\Reservation;
 use App\Models\User;
@@ -46,18 +45,6 @@ it('finds clients by company name for admins', function () {
         ->assertDontSee('Globex Corporation');
 });
 
-it('finds agencies by company name for admins', function () {
-    $admin = User::factory()->admin()->create();
-    Agency::factory()->create(['company_name' => 'Initech Media']);
-    Agency::factory()->create(['company_name' => 'Umbrella Agency']);
-
-    $this->actingAs($admin)
-        ->get(route('search.index', ['q' => 'Initech', 'type' => 'agency']))
-        ->assertOk()
-        ->assertSee('Initech Media')
-        ->assertDontSee('Umbrella Agency');
-});
-
 it('lets salespeople search clients by company name', function () {
     $user = User::factory()->salesperson()->create();
     Client::factory()->create(['company_name' => 'Acme Industries Ltd']);
@@ -68,18 +55,6 @@ it('lets salespeople search clients by company name', function () {
         ->assertOk()
         ->assertSee('Acme Industries Ltd')
         ->assertDontSee('Globex Corporation');
-});
-
-it('lets salespeople search agencies by company name', function () {
-    $user = User::factory()->salesperson()->create();
-    Agency::factory()->create(['company_name' => 'Initech Media']);
-    Agency::factory()->create(['company_name' => 'Umbrella Agency']);
-
-    $this->actingAs($user)
-        ->get(route('search.index', ['q' => 'Initech', 'type' => 'agency']))
-        ->assertOk()
-        ->assertSee('Initech Media')
-        ->assertDontSee('Umbrella Agency');
 });
 
 it('shows a no results message when nothing matches', function () {

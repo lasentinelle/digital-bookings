@@ -45,19 +45,43 @@
           </div>
         </div>
 
-        {{-- Client & Agency --}}
+        {{-- Badges --}}
+        <div class="flex flex-wrap gap-2">
+          <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
+            {{ $reservation->type->label() }}
+          </span>
+          @if($reservation->is_cash)
+            <span class="inline-flex items-center rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
+              Cash
+            </span>
+          @endif
+          @if($reservation->bill_at_end_of_campaign)
+            <span class="inline-flex items-center rounded-md bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+              Bill at end of campaign
+            </span>
+          @endif
+          @if($reservation->is_foreign_currency && $reservation->foreign_currency_code)
+            <span class="inline-flex items-center rounded-md bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700 ring-1 ring-inset ring-sky-200">
+              {{ $reservation->foreign_currency_code->value }} {{ number_format((float) $reservation->foreign_currency_amount, 2) }}
+            </span>
+          @endif
+        </div>
+
+        {{-- Client --}}
         <div class="space-y-6">
-          <h2 class="text-lg font-medium text-gray-900">Client & Agency</h2>
+          <h2 class="text-lg font-medium text-gray-900">Client</h2>
 
           <div class="grid grid-cols-2 gap-6">
             <div>
               <p class="text-sm font-medium text-gray-700">Client</p>
               <p class="mt-1 text-sm text-gray-900">{{ $reservation->client->company_name }}</p>
             </div>
-            <div>
-              <p class="text-sm font-medium text-gray-700">Agency</p>
-              <p class="mt-1 text-sm text-gray-900">{{ $reservation->agency?->company_name ?? '—' }}</p>
-            </div>
+            @if($reservation->representedClient)
+              <div>
+                <p class="text-sm font-medium text-gray-700">Representing</p>
+                <p class="mt-1 text-sm text-gray-900">{{ $reservation->representedClient->company_name }}</p>
+              </div>
+            @endif
           </div>
 
           <div>
@@ -141,28 +165,48 @@
               <p class="mt-1 text-sm text-gray-900">MUR {{ number_format($reservation->commission, 2) }}</p>
             </div>
             <div>
-              <p class="text-sm font-medium text-gray-700">Cost of Artwork</p>
-              <p class="mt-1 text-sm text-gray-900">MUR {{ number_format($reservation->cost_of_artwork, 2) }}</p>
+              <p class="text-sm font-medium text-gray-700">VAT</p>
+              <p class="mt-1 text-sm text-gray-900">MUR {{ number_format($reservation->vat, 2) }}</p>
             </div>
           </div>
 
           <div class="grid grid-cols-2 gap-6">
             <div>
-              <p class="text-sm font-medium text-gray-700">VAT</p>
-              <p class="mt-1 text-sm text-gray-900">MUR {{ number_format($reservation->vat, 2) }}</p>
-            </div>
-            <div>
               <p class="text-sm font-medium text-gray-700">VAT Exempt</p>
               <p class="mt-1 text-sm text-gray-900">{{ $reservation->vat_exempt ? 'Yes' : 'No' }}</p>
             </div>
+            <div>
+              <p class="text-sm font-medium text-gray-700">Total Amount to Pay</p>
+              <p class="mt-1 text-sm text-gray-900">MUR {{ number_format($reservation->total_amount_to_pay, 2) }}</p>
+            </div>
           </div>
 
-          <div>
-            <p class="text-sm font-medium text-gray-700">Total Amount to Pay</p>
-            <p class="mt-1 text-sm text-gray-900">MUR {{ number_format($reservation->total_amount_to_pay, 2) }}</p>
-          </div>
-
+          @if($reservation->is_foreign_currency && $reservation->foreign_currency_code)
+            <div>
+              <p class="text-sm font-medium text-gray-700">Foreign Currency</p>
+              <p class="mt-1 text-sm text-gray-900">
+                {{ $reservation->foreign_currency_code->value }} {{ number_format((float) $reservation->foreign_currency_amount, 2) }}
+              </p>
+            </div>
+          @endif
         </div>
+
+        {{-- Parent Reservation --}}
+        @if($reservation->parent)
+          <div class="space-y-6">
+            <h2 class="text-lg font-medium text-gray-900">Parent Reservation</h2>
+
+            <div>
+              <p class="text-sm font-medium text-gray-700">Linked to</p>
+              <p class="mt-1 text-sm text-gray-900">
+                <a href="{{ route('reservations.show', $reservation->parent) }}" class="inline-flex items-center gap-1.5 font-medium text-gray-900 underline hover:text-gray-700">
+                  <span class="font-mono text-xs">{{ $reservation->parent->reference }}</span>
+                  <span>— {{ $reservation->parent->product }}</span>
+                </a>
+              </p>
+            </div>
+          </div>
+        @endif
 
         {{-- Documents --}}
         <div class="space-y-6">

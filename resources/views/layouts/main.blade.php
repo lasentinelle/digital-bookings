@@ -65,8 +65,7 @@
 
                     @php
                       $canSearchClients = auth()->user()?->can('manage-clients') ?? false;
-                      $canSearchAgencies = auth()->user()?->can('manage-agencies') ?? false;
-                      $searchOptionsCount = 1 + (int) $canSearchClients + (int) $canSearchAgencies;
+                      $searchOptionsCount = 1 + (int) $canSearchClients;
                     @endphp
                     <fieldset class="mt-4">
                       <legend class="sr-only">Search in</legend>
@@ -79,12 +78,6 @@
                           <label class="flex cursor-pointer items-center justify-center rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 has-[:checked]:border-gray-900 has-[:checked]:bg-gray-900 has-[:checked]:text-white">
                             <input type="radio" name="type" value="client" class="sr-only">
                             Client name
-                          </label>
-                        @endif
-                        @if($canSearchAgencies)
-                          <label class="flex cursor-pointer items-center justify-center rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 has-[:checked]:border-gray-900 has-[:checked]:bg-gray-900 has-[:checked]:text-white">
-                            <input type="radio" name="type" value="agency" class="sr-only">
-                            Agency name
                           </label>
                         @endif
                       </div>
@@ -148,18 +141,6 @@
                       <path d="M7 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM14.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM1.615 16.428a1.224 1.224 0 0 1-.569-1.175 6.002 6.002 0 0 1 11.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 0 1 7 18a9.953 9.953 0 0 1-5.385-1.572ZM14.5 16h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 0 0-1.588-3.755 4.502 4.502 0 0 1 5.874 2.636.818.818 0 0 1-.36.98A7.465 7.465 0 0 1 14.5 16Z" />
                     </svg>
                     Clients
-                  </a>
-                </li>
-                @endcan
-
-                @can('manage-agencies')
-                {{-- Agencies --}}
-                <li>
-                  <a href="{{ route('agencies.index') }}" class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm {{ request()->routeIs('agencies.*') ? 'font-semibold text-gray-900 bg-white shadow-sm ring-1 ring-gray-200' : 'text-gray-700 hover:bg-white/70' }}">
-                    <svg class="h-5 w-5 {{ request()->routeIs('agencies.*') ? 'text-gray-900' : 'text-gray-400' }}" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path fill-rule="evenodd" d="M4 16.5v-13h-.25a.75.75 0 0 1 0-1.5h12.5a.75.75 0 0 1 0 1.5H16v13h.25a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1 0-1.5H4Zm3-11a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5A.75.75 0 0 1 7 5.5Zm.75 2.25a.75.75 0 0 0 0 1.5h4.5a.75.75 0 0 0 0-1.5h-4.5ZM8 12a2 2 0 0 1 4 0v4.5H8V12Z" clip-rule="evenodd" />
-                    </svg>
-                    Agencies
                   </a>
                 </li>
                 @endcan

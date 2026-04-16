@@ -14,7 +14,10 @@
       <div class="mt-6 h-px w-full bg-gray-100"></div>
 
       <form action="{{ route('reservations.update', $reservation) }}" method="POST" class="mt-8 max-w-2xl space-y-8"
-        x-data="reservationForm()" x-init="init()" @dates-changed="datesCount = $event.detail.count; if (initialized) recalculateGrossAmount()">
+        x-data="reservationForm()" x-init="init()"
+        @dates-changed="datesCount = $event.detail.count; if (initialized) recalculateGrossAmount()"
+        @client-selected.window="onClientSelected($event.detail.id)"
+        @represented-client-selected.window="selectedRepresentedClientId = $event.detail.id">
         @csrf
         @method('PUT')
 
@@ -24,42 +27,57 @@
           <p class="mt-1 font-mono text-sm text-gray-900">{{ $reservation->reference }}</p>
         </div>
 
-        {{-- Client & Agency --}}
+        {{-- Reservation Type --}}
         <div class="space-y-6">
-          <h2 class="text-lg font-medium text-gray-900">Client & Agency</h2>
+          <h2 class="text-lg font-medium text-gray-900">Reservation Type</h2>
+          <div class="flex items-center gap-4">
+            @foreach($reservationTypes as $rt)
+              <label class="inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm cursor-pointer transition-colors"
+                :class="type === '{{ $rt->value }}' ? 'border-gray-900 bg-gray-900 text-white hover:bg-gray-800' : 'border-gray-200 text-gray-700 hover:bg-gray-50'">
+                <input type="radio" name="type" value="{{ $rt->value }}"
+                  x-model="type"
+                  @change="onTypeChange()"
+                  class="sr-only" />
+                {{ $rt->label() }}
+              </label>
+            @endforeach
+          </div>
+          @error('type')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+          @enderror
+        </div>
 
-          <div class="grid grid-cols-2 gap-6">
-            <div>
-              <label for="client_id" class="block text-sm font-medium text-gray-700">Client <span class="text-red-500">*</span></label>
-              <div class="mt-2">
-                <select name="client_id" id="client_id" required x-model="selectedClientId" @change="calculateDiscount(); syncVatExemptFromClient()"
-                  class="block w-full rounded-lg border @error('client_id') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100">
-                  <option value="">Select client</option>
-                  @foreach($clients as $client)
-                    <option value="{{ $client->id }}" {{ old('client_id', $reservation->client_id) == $client->id ? 'selected' : '' }}>{{ $client->company_name }}</option>
-                  @endforeach
-                </select>
-              </div>
-              @error('client_id')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-              @enderror
-            </div>
+        {{-- Client --}}
+        <div class="space-y-6">
+          <h2 class="text-lg font-medium text-gray-900">Client</h2>
 
-            <div>
-              <label for="agency_id" class="block text-sm font-medium text-gray-700">Agency</label>
-              <div class="mt-2">
-                <select name="agency_id" id="agency_id" x-model="selectedAgencyId" @change="calculateDiscount(); calculateCommission()"
-                  class="block w-full rounded-lg border @error('agency_id') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100">
-                  <option value="">Select agency</option>
-                  @foreach($agencies as $agency)
-                    <option value="{{ $agency->id }}" {{ old('agency_id', $reservation->agency_id) == $agency->id ? 'selected' : '' }}>{{ $agency->company_name }}</option>
-                  @endforeach
-                </select>
-              </div>
-              @error('agency_id')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-              @enderror
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Client <span class="text-red-500">*</span></label>
+            <div class="mt-2">
+              <x-client-combobox name="client_id" :clients="$clients" :selected="old('client_id', $reservation->client_id)" placeholder="Search for a client..." required dispatch-event="client-selected" />
             </div>
+            @error('client_id')
+              <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+          </div>
+
+          <div>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" :checked="isClientAgency"
+                @change="isClientAgency = $event.target.checked; if (!isClientAgency) { selectedRepresentedClientId = null; }"
+                class="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-200" />
+              Client is an agency acting on behalf of another company
+            </label>
+          </div>
+
+          <div x-show="isClientAgency" x-cloak>
+            <label class="block text-sm font-medium text-gray-700">Representing (end brand)</label>
+            <div class="mt-2">
+              <x-client-combobox name="represented_client_id" :clients="$clients" :selected="old('represented_client_id', $reservation->represented_client_id)" placeholder="Search for the end brand..." dispatch-event="represented-client-selected" />
+            </div>
+            @error('represented_client_id')
+              <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
           </div>
 
           <div class="grid grid-cols-2 gap-6">
@@ -112,77 +130,79 @@
             @enderror
           </div>
 
-          <div class="grid grid-cols-2 gap-6">
-            <div>
-              <label for="platform_id" class="block text-sm font-medium text-gray-700">Platform</label>
-              <div class="mt-2">
-                <select name="platform_id" id="platform_id" x-model="selectedPlatformId" @change="filterPlacements()"
-                  class="block w-full rounded-lg border @error('platform_id') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100">
-                  <option value="">All platforms</option>
-                  @foreach($platforms as $platform)
-                    <option value="{{ $platform->id }}" {{ old('platform_id', $reservation->platform_id) == $platform->id ? 'selected' : '' }}>{{ $platform->name }}</option>
-                  @endforeach
-                </select>
+          <div x-show="type !== 'cost_of_artwork'" x-cloak class="space-y-6">
+            <div class="grid grid-cols-2 gap-6">
+              <div>
+                <label for="platform_id" class="block text-sm font-medium text-gray-700">Platform</label>
+                <div class="mt-2">
+                  <select name="platform_id" id="platform_id" x-model="selectedPlatformId" @change="filterPlacements()"
+                    class="block w-full rounded-lg border @error('platform_id') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100">
+                    <option value="">All platforms</option>
+                    @foreach($platforms as $platform)
+                      <option value="{{ $platform->id }}" {{ old('platform_id', $reservation->platform_id) == $platform->id ? 'selected' : '' }}>{{ $platform->name }}</option>
+                    @endforeach
+                  </select>
+                </div>
+                @error('platform_id')
+                  <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
               </div>
-              @error('platform_id')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-              @enderror
+
+              <div>
+                <label for="placement_id" class="block text-sm font-medium text-gray-700">Placement <span class="text-red-500">*</span></label>
+                <div class="mt-2">
+                  <select name="placement_id" id="placement_id" required x-model="selectedPlacementId" @change="prefillGrossAmount()"
+                    class="block w-full rounded-lg border @error('placement_id') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100">
+                    <option value="">Select placement</option>
+                    <template x-for="placement in filteredPlacements" :key="placement.id">
+                      <option :value="placement.id" x-text="placement.name" :selected="placement.id == selectedPlacementId"></option>
+                    </template>
+                  </select>
+                </div>
+                @error('placement_id')
+                  <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+              </div>
             </div>
 
-            <div>
-              <label for="placement_id" class="block text-sm font-medium text-gray-700">Placement <span class="text-red-500">*</span></label>
-              <div class="mt-2">
-                <select name="placement_id" id="placement_id" required x-model="selectedPlacementId" @change="prefillGrossAmount()"
-                  class="block w-full rounded-lg border @error('placement_id') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100">
-                  <option value="">Select placement</option>
-                  <template x-for="placement in filteredPlacements" :key="placement.id">
-                    <option :value="placement.id" x-text="placement.name" :selected="placement.id == selectedPlacementId"></option>
-                  </template>
-                </select>
+            <div class="grid grid-cols-2 gap-6">
+              <div>
+                <label for="channel" class="block text-sm font-medium text-gray-700">Channel <span class="text-red-500">*</span></label>
+                <div class="mt-2">
+                  <select name="channel" id="channel" required
+                    class="block w-full rounded-lg border @error('channel') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100">
+                    <option value="">Select channel</option>
+                    @foreach($channels as $channel)
+                      <option value="{{ $channel }}" {{ old('channel', $reservation->channel) === $channel ? 'selected' : '' }}>{{ $channel }}</option>
+                    @endforeach
+                  </select>
+                </div>
+                @error('channel')
+                  <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
               </div>
-              @error('placement_id')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-              @enderror
-            </div>
-          </div>
 
-          <div class="grid grid-cols-2 gap-6">
-            <div>
-              <label for="channel" class="block text-sm font-medium text-gray-700">Channel <span class="text-red-500">*</span></label>
-              <div class="mt-2">
-                <select name="channel" id="channel" required
-                  class="block w-full rounded-lg border @error('channel') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100">
-                  <option value="">Select channel</option>
-                  @foreach($channels as $channel)
-                    <option value="{{ $channel }}" {{ old('channel', $reservation->channel) === $channel ? 'selected' : '' }}>{{ $channel }}</option>
-                  @endforeach
-                </select>
+              <div>
+                <label for="scope" class="block text-sm font-medium text-gray-700">Scope <span class="text-red-500">*</span></label>
+                <div class="mt-2">
+                  <select name="scope" id="scope" required
+                    class="block w-full rounded-lg border @error('scope') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100">
+                    <option value="">Select scope</option>
+                    @foreach($scopes as $scope)
+                      <option value="{{ $scope }}" {{ old('scope', $reservation->scope) === $scope ? 'selected' : '' }}>{{ $scope }}</option>
+                    @endforeach
+                  </select>
+                </div>
+                @error('scope')
+                  <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
               </div>
-              @error('channel')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-              @enderror
-            </div>
-
-            <div>
-              <label for="scope" class="block text-sm font-medium text-gray-700">Scope <span class="text-red-500">*</span></label>
-              <div class="mt-2">
-                <select name="scope" id="scope" required
-                  class="block w-full rounded-lg border @error('scope') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100">
-                  <option value="">Select scope</option>
-                  @foreach($scopes as $scope)
-                    <option value="{{ $scope }}" {{ old('scope', $reservation->scope) === $scope ? 'selected' : '' }}>{{ $scope }}</option>
-                  @endforeach
-                </select>
-              </div>
-              @error('scope')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-              @enderror
             </div>
           </div>
         </div>
 
         {{-- Dates --}}
-        <div class="space-y-6">
+        <div x-show="type !== 'cost_of_artwork'" x-cloak class="space-y-6">
           <h2 class="text-lg font-medium text-gray-900">Reservation Dates</h2>
 
           <div x-data="datePicker()" x-init="init()">
@@ -216,7 +236,7 @@
               @enderror
             </div>
 
-            <div>
+            <div x-show="type !== 'cost_of_artwork'" x-cloak>
               <label for="discount" class="block text-sm font-medium text-gray-700">Discount (MUR)</label>
               <div class="mt-2">
                 <input name="discount" id="discount" x-model="discount" @can('edit-financials') @input="calculateTotalAmountToPay()" @else readonly @endcan
@@ -229,7 +249,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-6">
+          <div x-show="type !== 'cost_of_artwork'" x-cloak class="grid grid-cols-2 gap-6">
             <div>
               <label for="commission" class="block text-sm font-medium text-gray-700">Commission (MUR)</label>
               <div class="mt-2">
@@ -241,40 +261,18 @@
                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
               @enderror
             </div>
-
-            <div>
-              <label for="cost_of_artwork" class="block text-sm font-medium text-gray-700">Cost of Artwork (MUR)</label>
-              <div class="mt-2">
-                <input name="cost_of_artwork" id="cost_of_artwork" x-model="costOfArtwork" @input="calculateVat()"
-                  class="block w-full rounded-lg border @error('cost_of_artwork') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100" />
-              </div>
-              @error('cost_of_artwork')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-              @enderror
-            </div>
           </div>
 
           <div class="grid grid-cols-2 gap-6">
-            <div class="space-y-4">
-              <div>
-                <label for="vat" class="block text-sm font-medium text-gray-700">VAT (MUR)</label>
-                <div class="mt-2">
-                  <input name="vat" id="vat" x-model="vat" @input="calculateTotalAmountToPay()"
-                    class="block w-full rounded-lg border @error('vat') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100" />
-                </div>
-                @error('vat')
-                  <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
+            <div>
+              <label for="vat" class="block text-sm font-medium text-gray-700">VAT (MUR)</label>
+              <div class="mt-2">
+                <input name="vat" id="vat" x-model="vat" @input="calculateTotalAmountToPay()"
+                  class="block w-full rounded-lg border @error('vat') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-100" />
               </div>
-
-              <div>
-                <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                  <input type="hidden" name="vat_exempt" :value="vatExempt ? '1' : '0'" />
-                  <input type="checkbox" :checked="vatExempt" @change="vatExempt = $event.target.checked; calculateVat()"
-                    class="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-200" />
-                  VAT Exempt
-                </label>
-              </div>
+              @error('vat')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+              @enderror
             </div>
 
             <div>
@@ -289,6 +287,89 @@
             </div>
           </div>
 
+          <div class="flex flex-wrap items-center gap-6">
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="hidden" name="vat_exempt" :value="vatExempt ? '1' : '0'" />
+              <input type="checkbox" :checked="vatExempt" @change="vatExempt = $event.target.checked; calculateVat()"
+                class="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-200" />
+              VAT Exempt
+            </label>
+
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="hidden" name="is_cash" :value="isCash ? '1' : '0'" />
+              <input type="checkbox" :checked="isCash" @change="isCash = $event.target.checked"
+                class="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-200" />
+              Cash
+            </label>
+
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="hidden" name="bill_at_end_of_campaign" :value="billAtEndOfCampaign ? '1' : '0'" />
+              <input type="checkbox" :checked="billAtEndOfCampaign" @change="billAtEndOfCampaign = $event.target.checked"
+                class="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-200" />
+              Bill at end of campaign
+            </label>
+
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="hidden" name="is_foreign_currency" :value="isForeignCurrency ? '1' : '0'" />
+              <input type="checkbox" :checked="isForeignCurrency"
+                @change="isForeignCurrency = $event.target.checked; if (!isForeignCurrency) { foreignCurrencyAmount = ''; foreignCurrencyCode = ''; }"
+                class="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-200" />
+              Foreign Currency
+            </label>
+          </div>
+
+          <div x-show="isForeignCurrency" x-cloak class="space-y-3">
+            <div class="grid grid-cols-2 gap-6">
+              <div>
+                <label for="foreign_currency_amount" class="block text-sm font-medium text-gray-700">Amount</label>
+                <input type="number" step="0.01" min="0" name="foreign_currency_amount" id="foreign_currency_amount"
+                  x-model="foreignCurrencyAmount"
+                  class="mt-2 block w-full rounded-lg border @error('foreign_currency_amount') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm" />
+                @error('foreign_currency_amount')
+                  <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+              </div>
+              <div>
+                <label for="foreign_currency_code" class="block text-sm font-medium text-gray-700">Currency</label>
+                <select name="foreign_currency_code" id="foreign_currency_code" x-model="foreignCurrencyCode"
+                  class="mt-2 block w-full rounded-lg border @error('foreign_currency_code') border-red-500 @else border-gray-200 @enderror bg-white px-4 py-2.5 text-gray-900 shadow-sm">
+                  <option value="">Select currency</option>
+                  @foreach($foreignCurrencies as $fc)
+                    <option value="{{ $fc->value }}">{{ $fc->label() }}</option>
+                  @endforeach
+                </select>
+                @error('foreign_currency_code')
+                  <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {{-- Parent Reservation --}}
+        <div class="space-y-6">
+          <h2 class="text-lg font-medium text-gray-900">Link to Parent Reservation</h2>
+          <p class="text-xs text-gray-500">Optional. Use this to tie a Facebook Boost to its parent Facebook Post, for example.</p>
+          <div x-data="linkableCombobox({
+              items: @js($linkableReservationsJson),
+              selectedId: @js(old('parent_reservation_id', $reservation->parent_reservation_id)),
+            })"
+            x-on:click.outside="open = false"
+            class="relative">
+            <input type="hidden" name="parent_reservation_id" :value="selectedId ?? ''" />
+            <input type="text" x-model="query" @focus="open = true" @keydown.escape.prevent="open = false"
+              placeholder="Search by reference or product..."
+              autocomplete="off"
+              class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 shadow-sm focus:border-gray-400 focus:ring-4 focus:ring-gray-100" />
+            <ul x-show="open && filtered.length" x-cloak class="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+              <template x-for="item in filtered" :key="item.id">
+                <li @mousedown.prevent="select(item)" class="cursor-pointer px-4 py-2 text-sm text-gray-900 hover:bg-gray-100" x-text="item.label"></li>
+              </template>
+            </ul>
+          </div>
+          @error('parent_reservation_id')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+          @enderror
         </div>
 
         {{-- Documents --}}
@@ -445,16 +526,21 @@
       return {
         allPlacements: @json($placementsJson),
         allClients: @json($clientsJson),
-        allAgencies: @json($agenciesJson),
         filteredPlacements: [],
         selectedPlatformId: '{{ old('platform_id', $reservation->platform_id ?? '') }}',
         selectedPlacementId: '{{ old('placement_id', $reservation->placement_id ?? '') }}',
         selectedClientId: '{{ old('client_id', $reservation->client_id ?? '') }}',
-        selectedAgencyId: '{{ old('agency_id', $reservation->agency_id ?? '') }}',
+        selectedRepresentedClientId: {{ old('represented_client_id', $reservation->represented_client_id) ? (int) old('represented_client_id', $reservation->represented_client_id) : 'null' }},
+        isClientAgency: {{ old('represented_client_id', $reservation->represented_client_id) ? 'true' : 'false' }},
+        type: '{{ old('type', $reservation->type->value) }}',
+        isCash: {{ old('is_cash', $reservation->is_cash) ? 'true' : 'false' }},
+        isForeignCurrency: {{ old('is_foreign_currency', $reservation->is_foreign_currency) ? 'true' : 'false' }},
+        foreignCurrencyAmount: '{{ old('foreign_currency_amount', $reservation->foreign_currency_amount) }}',
+        foreignCurrencyCode: '{{ old('foreign_currency_code', $reservation->foreign_currency_code?->value) }}',
+        billAtEndOfCampaign: {{ old('bill_at_end_of_campaign', $reservation->bill_at_end_of_campaign) ? 'true' : 'false' }},
         grossAmount: '{{ old('gross_amount', $reservation->gross_amount) }}',
         discount: '{{ old('discount', $reservation->discount) }}',
         commission: '{{ old('commission', $reservation->commission) }}',
-        costOfArtwork: '{{ old('cost_of_artwork', $reservation->cost_of_artwork) }}',
         totalAmountToPay: '{{ old('total_amount_to_pay', $reservation->total_amount_to_pay) }}',
         vat: '{{ old('vat', $reservation->vat) }}',
         vatExempt: {{ old('vat_exempt', $reservation->vat_exempt) ? 'true' : 'false' }},
@@ -475,6 +561,24 @@
           this.calculateTotalAmountToPay();
           this.$nextTick(() => { this.initialized = true; });
         },
+        onClientSelected(id) {
+          this.selectedClientId = id;
+          this.calculateDiscount();
+          this.calculateCommission();
+          this.syncVatExemptFromClient();
+        },
+        onTypeChange() {
+          if (this.type === 'cost_of_artwork') {
+            this.discount = '0';
+            this.commission = '0';
+            this.discountBreakdown = '';
+            this.commissionBreakdown = '';
+            this.calculateVat();
+          } else {
+            this.calculateDiscount();
+            this.calculateCommission();
+          }
+        },
         filterPlacements() {
           if (this.selectedPlatformId) {
             this.filteredPlacements = this.allPlacements.filter(p => p.platform_id == this.selectedPlatformId);
@@ -486,6 +590,9 @@
           }
         },
         recalculateGrossAmount() {
+          if (this.type === 'cost_of_artwork') {
+            return;
+          }
           const placement = this.allPlacements.find(p => p.id == this.selectedPlacementId);
           if (placement && placement.type === 'programmatic') {
             return;
@@ -500,6 +607,13 @@
           this.recalculateGrossAmount();
         },
         calculateDiscount() {
+          if (this.type === 'cost_of_artwork') {
+            this.discount = '0';
+            this.discountBreakdown = '';
+            this.calculateVat();
+            return;
+          }
+
           const gross = parseFloat(this.grossAmount) || 0;
           const parts = [];
           let total = 0;
@@ -517,47 +631,39 @@
             }
           }
 
-          const agency = this.allAgencies.find(a => a.id == this.selectedAgencyId);
-          if (agency && agency.discount && agency.discount_type) {
-            if (agency.discount_type === '%') {
-              const value = Math.round((agency.discount * gross / 100) * 100) / 100;
-              parts.push('Agency: ' + agency.discount + '% of MUR ' + this.formatNumber(gross) + ' = MUR ' + this.formatNumber(value));
-              total += value;
-            } else {
-              const value = parseFloat(agency.discount);
-              parts.push('Agency: MUR ' + this.formatNumber(value));
-              total += value;
-            }
-          }
-
           if (parts.length > 0) {
             this.discount = total.toFixed(2);
-            if (parts.length > 1) {
-              this.discountBreakdown = parts.join(' + ') + ' = Total: MUR ' + this.formatNumber(total);
-            } else {
-              this.discountBreakdown = parts[0];
-            }
+            this.discountBreakdown = parts[0];
           } else {
+            this.discount = '0.00';
             this.discountBreakdown = '';
           }
 
           this.calculateVat();
         },
         calculateCommission() {
-          const gross = parseFloat(this.grossAmount) || 0;
-          const agency = this.allAgencies.find(a => a.id == this.selectedAgencyId);
+          if (this.type === 'cost_of_artwork') {
+            this.commission = '0';
+            this.commissionBreakdown = '';
+            this.calculateVat();
+            return;
+          }
 
-          if (agency && agency.commission_amount && agency.commission_type) {
-            if (agency.commission_type === '%') {
-              const value = Math.round((agency.commission_amount * gross / 100) * 100) / 100;
+          const gross = parseFloat(this.grossAmount) || 0;
+          const client = this.allClients.find(c => c.id == this.selectedClientId);
+
+          if (client && client.commission_amount && client.commission_type) {
+            if (client.commission_type === '%') {
+              const value = Math.round((client.commission_amount * gross / 100) * 100) / 100;
               this.commission = value.toFixed(2);
-              this.commissionBreakdown = 'Agency: ' + agency.commission_amount + '% of MUR ' + this.formatNumber(gross) + ' = MUR ' + this.formatNumber(value);
+              this.commissionBreakdown = 'Client: ' + client.commission_amount + '% of MUR ' + this.formatNumber(gross) + ' = MUR ' + this.formatNumber(value);
             } else {
-              const value = parseFloat(agency.commission_amount);
+              const value = parseFloat(client.commission_amount);
               this.commission = value.toFixed(2);
-              this.commissionBreakdown = 'Agency: MUR ' + this.formatNumber(value);
+              this.commissionBreakdown = 'Client: MUR ' + this.formatNumber(value);
             }
           } else {
+            this.commission = '0.00';
             this.commissionBreakdown = '';
           }
 
@@ -575,8 +681,7 @@
             const gross = parseFloat(this.grossAmount) || 0;
             const disc = parseFloat(this.discount) || 0;
             const comm = parseFloat(this.commission) || 0;
-            const artwork = parseFloat(this.costOfArtwork) || 0;
-            const subtotal = Math.max(0, gross - disc - comm + artwork);
+            const subtotal = Math.max(0, gross - disc - comm);
             this.vat = (subtotal * 0.15).toFixed(2);
           }
           this.calculateTotalAmountToPay();
@@ -585,9 +690,8 @@
           const gross = parseFloat(this.grossAmount) || 0;
           const disc = parseFloat(this.discount) || 0;
           const comm = parseFloat(this.commission) || 0;
-          const artwork = parseFloat(this.costOfArtwork) || 0;
           const vat = parseFloat(this.vat) || 0;
-          this.totalAmountToPay = Math.max(0, gross - disc - comm + artwork + vat).toFixed(2);
+          this.totalAmountToPay = Math.max(0, gross - disc - comm + vat).toFixed(2);
         },
         formatNumber(num) {
           return Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\ForeignCurrency;
 use App\Http\Requests\ReservationRequest;
-use App\Models\Agency;
 use App\Models\Client;
 use App\Models\Placement;
 use App\Models\Platform;
 use App\Models\Reservation;
 use App\Models\Salesperson;
 use App\ReservationStatus;
+use App\ReservationType;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -28,7 +29,7 @@ class ReservationController extends Controller
     public function index(): View
     {
         $reservations = Reservation::query()
-            ->with(['client', 'agency', 'platform', 'placement', 'salesperson'])
+            ->with(['client', 'representedClient', 'platform', 'placement', 'salesperson'])
             ->latest()
             ->paginate(20);
 
@@ -41,13 +42,14 @@ class ReservationController extends Controller
     public function create(): View
     {
         $clients = Client::query()->orderBy('company_name')->get();
-        $agencies = Agency::query()->orderBy('company_name')->get();
         $platforms = Platform::query()->orderBy('name')->get();
         $placements = Placement::query()->orderBy('name')->get();
         $salespeople = Salesperson::query()->orderBy('first_name')->orderBy('last_name')->get();
         $channels = ['Run of site', 'Home & multimedia'];
         $scopes = ['Mauritius only', 'Worldwide'];
         $statuses = ReservationStatus::cases();
+        $reservationTypes = ReservationType::cases();
+        $foreignCurrencies = ForeignCurrency::cases();
 
         $placementsJson = $placements->map(fn (Placement $p) => [
             'id' => $p->id,
@@ -58,20 +60,26 @@ class ReservationController extends Controller
         ]);
         $clientsJson = $clients->map(fn (Client $c) => [
             'id' => $c->id,
+            'company_name' => $c->company_name,
             'discount' => $c->discount,
             'discount_type' => $c->discount_type?->value,
+            'commission_amount' => $c->commission_amount,
+            'commission_type' => $c->commission_type?->value,
             'vat_number' => $c->vat_number,
             'vat_exempt' => $c->vat_exempt,
         ]);
-        $agenciesJson = $agencies->map(fn (Agency $a) => [
-            'id' => $a->id,
-            'discount' => $a->discount,
-            'discount_type' => $a->discount_type?->value,
-            'commission_amount' => $a->commission_amount,
-            'commission_type' => $a->commission_type?->value,
+
+        $linkableReservations = Reservation::query()
+            ->with('placement')
+            ->latest()
+            ->limit(100)
+            ->get(['id', 'reference', 'product', 'placement_id', 'client_id']);
+        $linkableReservationsJson = $linkableReservations->map(fn (Reservation $r) => [
+            'id' => $r->id,
+            'label' => $r->reference.' — '.($r->product ?? ''),
         ]);
 
-        return view('reservations.create', compact('clients', 'agencies', 'platforms', 'placements', 'salespeople', 'channels', 'scopes', 'statuses', 'placementsJson', 'clientsJson', 'agenciesJson'));
+        return view('reservations.create', compact('clients', 'platforms', 'placements', 'salespeople', 'channels', 'scopes', 'statuses', 'reservationTypes', 'foreignCurrencies', 'placementsJson', 'clientsJson', 'linkableReservationsJson'));
     }
 
     /**
@@ -101,7 +109,7 @@ class ReservationController extends Controller
      */
     public function show(Reservation $reservation): View
     {
-        $reservation->load(['client', 'agency', 'platform', 'placement', 'salesperson']);
+        $reservation->load(['client', 'representedClient', 'platform', 'placement', 'salesperson', 'parent']);
 
         return view('reservations.show', compact('reservation'));
     }
@@ -112,13 +120,14 @@ class ReservationController extends Controller
     public function edit(Reservation $reservation): View
     {
         $clients = Client::query()->orderBy('company_name')->get();
-        $agencies = Agency::query()->orderBy('company_name')->get();
         $platforms = Platform::query()->orderBy('name')->get();
         $placements = Placement::query()->orderBy('name')->get();
         $salespeople = Salesperson::query()->orderBy('first_name')->orderBy('last_name')->get();
         $channels = ['Run of site', 'Home & multimedia'];
         $scopes = ['Mauritius only', 'Worldwide'];
         $statuses = ReservationStatus::cases();
+        $reservationTypes = ReservationType::cases();
+        $foreignCurrencies = ForeignCurrency::cases();
 
         $placementsJson = $placements->map(fn (Placement $p) => [
             'id' => $p->id,
@@ -129,20 +138,27 @@ class ReservationController extends Controller
         ]);
         $clientsJson = $clients->map(fn (Client $c) => [
             'id' => $c->id,
+            'company_name' => $c->company_name,
             'discount' => $c->discount,
             'discount_type' => $c->discount_type?->value,
+            'commission_amount' => $c->commission_amount,
+            'commission_type' => $c->commission_type?->value,
             'vat_number' => $c->vat_number,
             'vat_exempt' => $c->vat_exempt,
         ]);
-        $agenciesJson = $agencies->map(fn (Agency $a) => [
-            'id' => $a->id,
-            'discount' => $a->discount,
-            'discount_type' => $a->discount_type?->value,
-            'commission_amount' => $a->commission_amount,
-            'commission_type' => $a->commission_type?->value,
+
+        $linkableReservations = Reservation::query()
+            ->with('placement')
+            ->where('id', '!=', $reservation->id)
+            ->latest()
+            ->limit(100)
+            ->get(['id', 'reference', 'product', 'placement_id', 'client_id']);
+        $linkableReservationsJson = $linkableReservations->map(fn (Reservation $r) => [
+            'id' => $r->id,
+            'label' => $r->reference.' — '.($r->product ?? ''),
         ]);
 
-        return view('reservations.edit', compact('reservation', 'clients', 'agencies', 'platforms', 'placements', 'salespeople', 'channels', 'scopes', 'statuses', 'placementsJson', 'clientsJson', 'agenciesJson'));
+        return view('reservations.edit', compact('reservation', 'clients', 'platforms', 'placements', 'salespeople', 'channels', 'scopes', 'statuses', 'reservationTypes', 'foreignCurrencies', 'placementsJson', 'clientsJson', 'linkableReservationsJson'));
     }
 
     /**
@@ -172,7 +188,7 @@ class ReservationController extends Controller
      */
     public function downloadPdf(Reservation $reservation): Response
     {
-        $reservation->load(['client', 'agency', 'platform', 'placement', 'salesperson']);
+        $reservation->load(['client', 'representedClient', 'platform', 'placement', 'salesperson', 'parent']);
 
         $logoPath = public_path('lsl-blue-2x.png');
 

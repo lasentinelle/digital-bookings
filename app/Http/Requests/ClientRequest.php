@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\CommissionType;
 use App\DiscountType;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -36,7 +37,7 @@ class ClientRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -45,6 +46,7 @@ class ClientRequest extends FormRequest
             'company_logo' => ['nullable', 'file', 'mimes:jpeg,jpg,png', 'max:1024'],
             'brn' => ['required', 'string', 'max:255'],
             'vat_number' => ['nullable', 'integer'],
+            'sage_client_code' => ['nullable', 'string', 'max:50'],
             'vat_exempt' => ['boolean'],
             'phone' => ['required', 'string', 'max:255'],
             'address' => ['required', 'string', 'max:255'],

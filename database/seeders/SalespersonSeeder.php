@@ -18,24 +18,28 @@ class SalespersonSeeder extends Seeder
                 'last_name' => 'Caprice',
                 'email' => 'patricia.caprice@lasentinelle.mu',
                 'phone' => '+230 5000 0001',
+                'sage_salesperson_code' => 'PATR',
             ],
             [
                 'first_name' => 'Jenna',
                 'last_name' => 'Moutou',
                 'email' => 'jenna.moutou@lasentinelle.mu',
                 'phone' => '+230 5000 0002',
+                'sage_salesperson_code' => 'JENN',
             ],
             [
                 'first_name' => 'Gino',
                 'last_name' => 'Sophine',
                 'email' => 'gino.sophie@lasentinelle.mu',
                 'phone' => '+230 5000 0003',
+                'sage_salesperson_code' => 'GINO',
             ],
             [
                 'first_name' => 'Rachel',
                 'last_name' => 'Dauhoo',
                 'email' => 'rachel.dauhoo@lasentinelle.mu',
                 'phone' => '+230 5000 0004',
+                'sage_salesperson_code' => 'RACH',
             ],
         ];
 

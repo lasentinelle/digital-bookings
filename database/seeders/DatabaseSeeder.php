@@ -20,7 +20,6 @@ class DatabaseSeeder extends Seeder
             PlatformSeeder::class,
             PlacementSeeder::class,
             ClientSeeder::class,
-            AgencySeeder::class,
             ReservationSeeder::class,
             BudgetSeeder::class,
         ]);

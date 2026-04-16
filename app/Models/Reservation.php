@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
+use App\ForeignCurrency;
 use App\ReservationStatus;
+use App\ReservationType;
 use Carbon\Carbon;
+use Database\Factories\ReservationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Reservation extends Model
 {
-    /** @use HasFactory<\Database\Factories\ReservationFactory> */
+    /** @use HasFactory<ReservationFactory> */
     use HasFactory;
 
     /**
@@ -19,11 +23,12 @@ class Reservation extends Model
     protected $fillable = [
         'reference',
         'client_id',
-        'agency_id',
+        'represented_client_id',
         'salesperson_id',
         'product',
         'platform_id',
         'placement_id',
+        'type',
         'channel',
         'scope',
         'dates_booked',
@@ -31,9 +36,14 @@ class Reservation extends Model
         'total_amount_to_pay',
         'discount',
         'commission',
-        'cost_of_artwork',
         'vat',
         'vat_exempt',
+        'is_cash',
+        'parent_reservation_id',
+        'is_foreign_currency',
+        'foreign_currency_amount',
+        'foreign_currency_code',
+        'bill_at_end_of_campaign',
         'status',
         'purchase_order_no',
         'purchase_order_path',
@@ -64,9 +74,14 @@ class Reservation extends Model
             'total_amount_to_pay' => 'decimal:2',
             'discount' => 'decimal:2',
             'commission' => 'decimal:2',
-            'cost_of_artwork' => 'decimal:2',
             'vat' => 'decimal:2',
             'vat_exempt' => 'boolean',
+            'is_cash' => 'boolean',
+            'is_foreign_currency' => 'boolean',
+            'foreign_currency_amount' => 'decimal:2',
+            'foreign_currency_code' => ForeignCurrency::class,
+            'bill_at_end_of_campaign' => 'boolean',
+            'type' => ReservationType::class,
             'status' => ReservationStatus::class,
         ];
     }
@@ -121,11 +136,13 @@ class Reservation extends Model
     }
 
     /**
-     * @return BelongsTo<Agency, $this>
+     * The client that `client_id` is booking on behalf of, when acting as an agency.
+     *
+     * @return BelongsTo<Client, $this>
      */
-    public function agency(): BelongsTo
+    public function representedClient(): BelongsTo
     {
-        return $this->belongsTo(Agency::class);
+        return $this->belongsTo(Client::class, 'represented_client_id');
     }
 
     /**
@@ -150,5 +167,21 @@ class Reservation extends Model
     public function placement(): BelongsTo
     {
         return $this->belongsTo(Placement::class);
+    }
+
+    /**
+     * @return BelongsTo<Reservation, $this>
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Reservation::class, 'parent_reservation_id');
+    }
+
+    /**
+     * @return HasMany<Reservation, $this>
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(Reservation::class, 'parent_reservation_id');
     }
 }

@@ -3,17 +3,40 @@
 @section('content')
   <main class="flex-1 bg-white">
     <div class="px-12 py-10">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-wrap items-center justify-between gap-4">
         <h1 class="text-2xl font-semibold text-gray-900">Reservations</h1>
-        <a href="{{ route('reservations.create') }}" class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-200">
-          Add Reservation
-        </a>
+        <div class="flex flex-wrap items-center gap-3">
+          @can('sage-export')
+            <form method="GET" action="{{ route('reservations.sage-export') }}" class="flex flex-wrap items-center gap-2" x-data="{ start: '', end: '' }">
+              <input type="date" name="start_date" x-model="start" required
+                class="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-400 focus:ring-4 focus:ring-gray-100">
+              <input type="date" name="end_date" x-model="end" required
+                class="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-400 focus:ring-4 focus:ring-gray-100">
+              <select name="payment_mode" class="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-400 focus:ring-4 focus:ring-gray-100">
+                <option value="credit">Credit</option>
+                <option value="cash">Cash</option>
+              </select>
+              <button type="submit" class="cursor-pointer rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-200">
+                SAGE Export
+              </button>
+            </form>
+          @endcan
+          <a href="{{ route('reservations.create') }}" class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-200">
+            Add Reservation
+          </a>
+        </div>
       </div>
       <div class="mt-6 h-px w-full bg-gray-100"></div>
 
       @if(session('success'))
         <div class="mt-6 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
           {{ session('success') }}
+        </div>
+      @endif
+
+      @if(session('error'))
+        <div class="mt-6 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+          {{ session('error') }}
         </div>
       @endif
 

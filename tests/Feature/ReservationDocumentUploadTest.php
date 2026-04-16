@@ -196,6 +196,7 @@ it('uploads documents via the reservation update form', function () {
         'client_id' => $this->reservation->client_id,
         'product' => $this->reservation->product,
         'placement_id' => $this->reservation->placement_id,
+        'type' => $this->reservation->type->value,
         'channel' => $this->reservation->channel,
         'scope' => $this->reservation->scope,
         'dates_booked' => json_encode($this->reservation->dates_booked),
